@@ -48,3 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - All `r.Start()` calls in tests now check error return values (errcheck)
+- `lazyFile.Close` now nils out the file handle after closing, making
+  `Recorder.Close` truly idempotent — a second `Close` after a snapshot
+  no longer returns "file already closed" (`options.go`)

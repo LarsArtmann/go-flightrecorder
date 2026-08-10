@@ -98,5 +98,11 @@ func (lf *lazyFile) Close() error {
 		return nil
 	}
 
-	return lf.f.Close() //nolint:wrapcheck // direct delegation
+	// Nil out the handle so repeated Close calls are safe. Without this,
+	// a second Close would call Close on an already-closed *os.File and
+	// return "file already closed", violating the idempotent Close contract.
+	f := lf.f
+	lf.f = nil
+
+	return f.Close() //nolint:wrapcheck // direct delegation
 }

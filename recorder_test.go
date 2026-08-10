@@ -570,6 +570,41 @@ func TestRecorder_LazyFileCloseWithoutSnapshot(t *testing.T) {
 	}
 }
 
+func TestRecorder_CloseIdempotentAfterSnapshot(t *testing.T) {
+	recorderMu.Lock()
+	defer recorderMu.Unlock()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "written_then_closed.trace")
+
+	r, _ := flightrecorder.New(
+		flightrecorder.WithMinAge(50*time.Millisecond),
+		flightrecorder.WithMaxBytes(1<<20),
+		flightrecorder.WithFile(path),
+	)
+
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Snapshot opens the lazyFile. After this, lf.f is a real *os.File.
+	if err := r.Snapshot(context.Background()); err != nil {
+		t.Fatalf("Snapshot() error: %v", err)
+	}
+
+	// First Close closes the underlying file.
+	if err := r.Close(); err != nil {
+		t.Fatalf("first Close() error: %v", err)
+	}
+
+	// Second Close must be safe (documented idempotent) — not "file already closed".
+	if err := r.Close(); err != nil {
+		t.Fatalf("second Close() after snapshot should be a no-op, got: %v", err)
+	}
+}
+
 func TestConfigError_TypedMatching(t *testing.T) {
 	t.Parallel()
 
