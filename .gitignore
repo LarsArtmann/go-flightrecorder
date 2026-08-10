@@ -6,8 +6,13 @@
 *.test
 *.out
 vendor/
+go.work
 go.work.sum
 /go-flightrecorder
+
+## Reports and coverage
+reports/
+coverage.out
 
 ## Editors and ides
 .idea/

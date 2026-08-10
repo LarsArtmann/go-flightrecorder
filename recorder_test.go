@@ -87,7 +87,9 @@ func TestRecorder_StopIdempotent(t *testing.T) {
 	defer recorderMu.Unlock()
 
 	r, _ := flightrecorder.New()
-	r.Start()
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
 
 	r.Stop()
 	r.Stop()
@@ -134,7 +136,9 @@ func TestRecorder_SnapshotOnceSemantics(t *testing.T) {
 		flightrecorder.WithWriter(&buf),
 	)
 
-	r.Start()
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
 	t.Cleanup(r.Stop)
 
 	time.Sleep(100 * time.Millisecond)
@@ -170,7 +174,9 @@ func TestRecorder_ResetAllowsSecondSnapshot(t *testing.T) {
 		flightrecorder.WithWriter(&buf),
 	)
 
-	r.Start()
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
 	t.Cleanup(r.Stop)
 
 	time.Sleep(100 * time.Millisecond)
@@ -229,7 +235,9 @@ func TestRecorder_SnapshotToFile(t *testing.T) {
 		flightrecorder.WithMaxBytes(1<<20),
 	)
 
-	r.Start()
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
 	t.Cleanup(r.Stop)
 
 	time.Sleep(100 * time.Millisecond)
@@ -261,7 +269,9 @@ func TestRecorder_WithFile(t *testing.T) {
 		flightrecorder.WithFile(path),
 	)
 
-	r.Start()
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
 	t.Cleanup(r.Stop)
 
 	time.Sleep(100 * time.Millisecond)
@@ -292,7 +302,9 @@ func TestRecorder_SnapshotIf_TriggersFire(t *testing.T) {
 		flightrecorder.WithWriter(&buf),
 	)
 
-	r.Start()
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
 	t.Cleanup(r.Stop)
 
 	time.Sleep(100 * time.Millisecond)
@@ -328,7 +340,9 @@ func TestRecorder_SnapshotIf_TriggerDoesNotFire(t *testing.T) {
 		flightrecorder.WithWriter(&buf),
 	)
 
-	r.Start()
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
 	t.Cleanup(r.Stop)
 
 	time.Sleep(100 * time.Millisecond)
@@ -357,7 +371,9 @@ func TestRecorder_SnapshotIf_NilTrigger(t *testing.T) {
 	defer recorderMu.Unlock()
 
 	r, _ := flightrecorder.New()
-	r.Start()
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
 	t.Cleanup(r.Stop)
 
 	fired := r.SnapshotIf(
@@ -383,7 +399,9 @@ func TestRecorder_ConcurrentSnapshots(t *testing.T) {
 		flightrecorder.WithWriter(&buf),
 	)
 
-	r.Start()
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
 	t.Cleanup(r.Stop)
 
 	time.Sleep(100 * time.Millisecond)
@@ -475,7 +493,9 @@ func TestRecorder_SnapshotCancelledContext(t *testing.T) {
 		flightrecorder.WithWriter(&buf),
 	)
 
-	r.Start()
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
 	t.Cleanup(r.Stop)
 
 	time.Sleep(100 * time.Millisecond)
@@ -504,7 +524,9 @@ func TestRecorder_SnapshotToFileCancelledContext(t *testing.T) {
 		flightrecorder.WithMaxBytes(1<<20),
 	)
 
-	r.Start()
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
 	t.Cleanup(r.Stop)
 
 	time.Sleep(100 * time.Millisecond)
@@ -518,5 +540,32 @@ func TestRecorder_SnapshotToFileCancelledContext(t *testing.T) {
 
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Fatalf("expected file NOT to be created with cancelled context, got err: %v", err)
+	}
+}
+
+func TestRecorder_LazyFileCloseWithoutSnapshot(t *testing.T) {
+	recorderMu.Lock()
+	defer recorderMu.Unlock()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "never_written.trace")
+
+	r, _ := flightrecorder.New(
+		flightrecorder.WithMinAge(50*time.Millisecond),
+		flightrecorder.WithMaxBytes(1<<20),
+		flightrecorder.WithFile(path),
+	)
+
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
+
+	// Close without ever calling Snapshot — lazyFile should not have created the file.
+	if err := r.Close(); err != nil {
+		t.Fatalf("Close() error: %v", err)
+	}
+
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("expected file NOT to be created when no snapshot was taken, got err: %v", err)
 	}
 }

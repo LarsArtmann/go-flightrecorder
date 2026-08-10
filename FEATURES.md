@@ -48,7 +48,7 @@
 | MinAge option                  | 🟢 `FULLY_FUNCTIONAL` | `options.go:50`; default 10s; validated positive                  |
 | MaxBytes option                | 🟢 `FULLY_FUNCTIONAL` | `options.go:59`; default 10 MiB; validated non-zero               |
 | Writer sink (io.Writer)        | 🟢 `FULLY_FUNCTIONAL` | `options.go:68`; default `io.Discard`                             |
-| Lazy file sink                 | 🟢 `FULLY_FUNCTIONAL` | `options.go:77` (`WithFile`); file opened on first write; tested  |
+| Lazy file sink                 | 🟢 `FULLY_FUNCTIONAL` | `options.go:77` (`WithFile`); file opened on first write; tested incl. close-without-snapshot |
 | Config validation              | 🟢 `FULLY_FUNCTIONAL` | `options.go:31`; rejects zero/negative minAge, zero maxBytes      |
 
 ## Trigger System

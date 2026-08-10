@@ -24,7 +24,7 @@ This library provides all of that with zero dependencies (stdlib only).
 go get github.com/larsartmann/go-flightrecorder
 ```
 
-Requires Go 1.25+ (for `runtime/trace.FlightRecorder`).
+Requires Go 1.26+ (`go.mod` pins `1.26.5`).
 
 ## Quick start
 
@@ -124,3 +124,7 @@ Design your application around a single recorder, created at startup and shared 
 ## License
 
 Proprietary. See [LICENSE](LICENSE).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).

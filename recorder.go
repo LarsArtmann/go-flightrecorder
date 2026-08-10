@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"runtime/trace"
 	"sync"
 	"time"
@@ -225,9 +226,9 @@ func (r *Recorder) captureToFile(path string) error {
 		return nil
 	}
 
-	f, err := openFile(path)
+	f, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("flightrecorder: opening snapshot file %s: %w", path, err)
+		return fmt.Errorf("flightrecorder: creating snapshot file %s: %w", path, err)
 	}
 	defer func() { _ = f.Close() }()
 

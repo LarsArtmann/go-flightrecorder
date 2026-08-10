@@ -107,13 +107,3 @@ func (lf *lazyFile) Close() error {
 
 	return lf.f.Close() //nolint:wrapcheck // direct delegation
 }
-
-// openFile creates or truncates the file at path.
-func openFile(path string) (*os.File, error) {
-	f, err := os.Create(path) //nolint:gosec // path from user config
-	if err != nil {
-		return nil, fmt.Errorf("flightrecorder: creating file %s: %w", path, err)
-	}
-
-	return f, nil
-}

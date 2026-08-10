@@ -17,7 +17,6 @@
 
 | Task                            | Status    | Impact | Effort | Evidence                                                     |
 | ------------------------------- | --------- | ------ | ------ | ------------------------------------------------------------ |
-| Create `flake.nix`              | 🔴 `TODO` | High   | 30min  | Lars's convention: Nix for ALL build/task automation; none exists |
 | Tag `v0.1.0`                    | 🔴 `TODO` | High   | 5min   | `git tag` returns empty; blocks consumer version pinning     |
 | Publish to GitHub               | 🔴 `TODO` | High   | 10min  | `git remote -v` returns empty; repo is local only            |
 
@@ -25,13 +24,10 @@
 
 | Task                                         | Status    | Impact | Effort | Evidence                                                                |
 | -------------------------------------------- | --------- | ------ | ------ | ----------------------------------------------------------------------- |
-| Add GitHub Actions CI                        | 🔴 `TODO` | Med    | 30min  | No `.github/` dir; tests are local-only                                 |
-| Fix errcheck warnings on `r.Start()` in tests | 🔴 `TODO` | Med    | 10min  | `recorder_test.go:90,137,173` — 3 unchecked Start returns (golangci-lint) |
+| Add edge case tests for `lazyFile`           | 🔴 `TODO` | Med    | 10min  | No test for `Close()` when file was never opened                        |
 
 ## Low Impact
 
 | Task                            | Status    | Impact | Effort | Evidence                          |
 | ------------------------------- | --------- | ------ | ------ | --------------------------------- |
-| Add `.editorconfig`             | 🔴 `TODO` | Low    | 5min   | Missing; editor consistency        |
-| Add `.gitattributes`            | 🔴 `TODO` | Low    | 5min   | Missing; line-ending normalization |
-| Add `CONTRIBUTING.md`           | 🔴 `TODO` | Low    | 15min  | Missing; open-source onboarding    |
+| Add `SECURITY.md`               | 🔴 `TODO` | Low    | 10min  | Links to GitHub advisories; needs remote first |

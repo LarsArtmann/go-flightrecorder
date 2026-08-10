@@ -9,14 +9,14 @@ Zero-dependency Go library (stdlib only) wrapping Go 1.25's `runtime/trace.Fligh
 ## Commands
 
 ```bash
-go test ./...     # run tests (~1s; tests sleep for trace buffer fill)
-go build ./...    # build
-go vet ./...      # vet
+go test ./... -race         # tests (always with -race)
+golangci-lint run ./...     # lint (v2 config in .golangci.yml)
+go vet ./...                # vet
 ```
 
-No `flake.nix`, Makefile, or CI config exists. No linter config file, but golangci-lint runs via LSP and the code uses `//nolint:` directives (see Conventions below).
+No `flake.nix`, `Makefile`, or `justfile` — `go` and `golangci-lint` are the only tools required. This matches the sibling micro-library pattern (go-retry, go-idempotency).
 
-Requires Go 1.25+ for `runtime/trace.FlightRecorder`. `go.mod` pins `go 1.26.5`.
+Requires Go 1.26+ (`go.mod` pins `go 1.26.5`).
 
 ## Architecture
 
@@ -45,23 +45,21 @@ if err.Error() == "flight recorder already enabled" {
 }
 ```
 
-This is fragile: if Go changes the runtime error message, `ErrAlreadyEnabled` detection breaks silently. If you touch this code, verify the string still matches the current Go runtime.
+This is fragile: if Go changes the runtime error message, `ErrAlreadyEnabled` detection breaks silently.
 
 ### Test serialization via `recorderMu`
 
-Because of the singleton constraint, every test that calls `Start`/`Stop` **must** acquire the package-level `recorderMu sync.Mutex` (`recorder_test.go:18`). These tests are intentionally **not** `t.Parallel()`. Trigger-only tests (`trigger_test.go`) are all `t.Parallel()`-safe because they never touch a live recorder.
+Because of the singleton constraint, every test that calls `Start`/`Stop` **must** acquire the package-level `recorderMu sync.Mutex` (`recorder_test.go:18`). These tests are intentionally **not** `t.Parallel()`. The `paralleltest` linter is excluded for test files in `.golangci.yml` for this reason.
 
 **When adding tests**: if the test calls `Start()`, wrap it with `recorderMu.Lock(); defer recorderMu.Unlock()` and do NOT call `t.Parallel()`.
 
 ### Snapshot once-semantics
 
-`Snapshot` and `SnapshotToFile` use `sync.Once` internally: only the **first** successful call writes trace data. All subsequent calls are silent no-ops (return `nil`). This prevents snapshot races when multiple goroutines detect a problem simultaneously.
-
-`Reset()` re-arms the latch by replacing the `sync.Once` value (`r.once = sync.Once{}`). `Reset` does **not** restart a stopped recorder.
+`Snapshot` and `SnapshotToFile` use `sync.Once` internally: only the **first** successful call writes trace data. All subsequent calls are silent no-ops (return `nil`). `Reset()` re-arms the latch by replacing the `sync.Once` value.
 
 ### `lazyFile` deferred file creation
 
-`WithFile(path)` stores a `*lazyFile` that opens the file on first `Write` call, so the file is not created until a snapshot is actually captured. `Close()` type-asserts the writer to `*lazyFile` to close it. `WithWriter` and `WithFile` are mutually exclusive in intent (last option wins via simple struct assignment).
+`WithFile(path)` stores a `*lazyFile` that opens the file on first `Write` call, so the file is not created until a snapshot is actually captured. `Close()` type-asserts the writer to `*lazyFile` to close it. `WithWriter` and `WithFile` are mutually exclusive in intent — last option wins via struct assignment.
 
 ### Context cancellation is pre-write only
 
@@ -69,24 +67,29 @@ Because of the singleton constraint, every test that calls `Start`/`Stop` **must
 
 ## Conventions
 
+### Lint configuration
+
+`.golangci.yml` enables ~90 linters (golangci-lint v2). Key config decisions:
+
+- `gosec` excludes G304 (file path from variable) and G115 (integer overflow) — both are intentional patterns in this library.
+- Test files (`_test.go`) exclude: `paralleltest`, `gochecknoglobals`, `goconst`, `varnamelen`, `wsl_v5`, `mnd`, `exhaustruct`, `err113` — all due to the singleton test serialization pattern and standard Go test idioms.
+- `varnamelen` ignore-names includes `r`, `f`, `p`, `tc` — standard Go abbreviations for Recorder, File, byte parameter, and TriggerContext.
+
 ### Error wrapping
 
 - Package-level sentinel errors: exported ones (`ErrAlreadyEnabled`) use `var Err... = errors.New(...)`; internal validation errors use lowercase `err...` sentinels.
-- Wrapping: `fmt.Errorf("%w: ...", sentinel, ...)` or `fmt.Errorf("%w: %w", wrappingErr, wrappedErr)` for dual-wrap.
+- Wrapping: `fmt.Errorf("%w: ...", sentinel, ...)`.
 - All error messages are prefixed with `flightrecorder:`.
 
 ### `//nolint:` directives
 
-golangci-lint is active. The codebase uses these directives with justifying comments (always include the reason):
+The codebase uses nolint directives with justifying comments:
 
 | Directive | Used for |
 |-----------|----------|
 | `//nolint:exhaustruct` | Intentional zero-value struct fields (mutex, once, lazy file handle) |
 | `//nolint:wrapcheck` | Direct delegation (`lf.f.Write`) and standard context error propagation (`ctx.Err()`) |
-| `//nolint:gosec` | File creation from user-supplied config path |
 | `//art-dupl:accept` | Accepted duplication (same-file mutex guard idiom) |
-
-Follow this pattern when adding code that triggers lint warnings.
 
 ### Functional options
 
@@ -98,4 +101,3 @@ Follow this pattern when adding code that triggers lint warnings.
 - `t.Cleanup(r.Stop)` for recorder teardown.
 - Tests that need trace data sleep (`time.Sleep(100*time.Millisecond)`) to let the buffer fill, with `MinAge` set low (e.g., `50*time.Millisecond`).
 - `t.TempDir()` for file-based snapshot tests.
-- Existing `errcheck` warnings on `r.Start()` calls in some tests are known/intentional (the Start error is asserted elsewhere or the test focuses on other behavior).
