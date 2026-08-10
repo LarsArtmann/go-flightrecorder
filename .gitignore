@@ -1,0 +1,22 @@
+## Go
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+go.work.sum
+/go-flightrecorder
+
+## Editors and ides
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+## Operating systems
+.DS_Store
+._*
+Thumbs.db
