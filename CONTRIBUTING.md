@@ -37,8 +37,6 @@ Tests that call `Start`/`Stop` are serialized via `recorderMu` and intentionally
 do **not** run in parallel (`paralleltest` is excluded for test files in
 `.golangci.yml`).
 
-### Zero dependencies
-
 This library is stdlib-only. Do not add third-party imports.
 
 ## How to Contribute

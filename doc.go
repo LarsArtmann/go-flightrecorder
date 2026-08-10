@@ -6,8 +6,6 @@
 // snapshot exactly the problematic window of time for offline analysis with
 // `go tool trace`.
 //
-// This is a zero-dependency library (stdlib only).
-//
 // # Process-global constraint
 //
 // Go's runtime/trace allows only ONE active FlightRecorder per process.

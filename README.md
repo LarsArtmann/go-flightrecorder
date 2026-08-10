@@ -18,8 +18,6 @@ A flight recorder buffers the last few seconds of execution trace in memory, con
 - Composable trigger conditions ("capture on errors OR latency above 100ms")
 - Process-global singleton enforcement (Go allows only one active recorder)
 
-This library provides all of that with zero dependencies (stdlib only).
-
 ## Install
 
 ```bash
