@@ -1,19 +1,12 @@
 package flightrecorder
 
 import (
-	"errors"
-	"fmt"
 	"io"
 	"os"
 	"time"
 )
 
-// Sentinel validation errors.
-var (
-	errMinAgeMustBePositive   = errors.New("flightrecorder: MinAge must be positive")
-	errMaxBytesMustBePositive = errors.New("flightrecorder: MaxBytes must be positive")
-)
-
+// validate returns a [*ConfigError] if the configuration is invalid.
 type recorderConfig struct {
 	minAge   time.Duration
 	maxBytes uint64
@@ -30,11 +23,11 @@ func defaultConfig() recorderConfig {
 
 func (c recorderConfig) validate() error {
 	if c.minAge <= 0 {
-		return fmt.Errorf("%w: got %s", errMinAgeMustBePositive, c.minAge)
+		return &ConfigError{Field: "MinAge", Value: c.minAge, Constraint: "must be positive"}
 	}
 
 	if c.maxBytes == 0 {
-		return errMaxBytesMustBePositive
+		return &ConfigError{Field: "MaxBytes", Value: c.maxBytes, Constraint: "must be non-zero"}
 	}
 
 	return nil
@@ -91,7 +84,7 @@ func (lf *lazyFile) Write(p []byte) (int, error) {
 	if lf.f == nil {
 		f, err := os.Create(lf.path)
 		if err != nil {
-			return 0, fmt.Errorf("flightrecorder: creating snapshot file %s: %w", lf.path, err)
+			return 0, &SnapshotError{Op: "create", Path: lf.path, Err: err}
 		}
 
 		lf.f = f

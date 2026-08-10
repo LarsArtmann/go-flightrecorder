@@ -3,7 +3,6 @@ package flightrecorder
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"runtime/trace"
@@ -14,13 +13,6 @@ import (
 const (
 	defaultMinAge          = 10 * time.Second
 	defaultMaxBytes uint64 = 10 << 20 // 10 MiB — ~1s of trace data for a busy service
-)
-
-// ErrAlreadyEnabled is returned by [Recorder.Start] when another flight
-// recorder is already active in this process. Go's runtime/trace allows
-// only one active [runtime/trace.FlightRecorder] at a time.
-var ErrAlreadyEnabled = errors.New(
-	"flightrecorder: another flight recorder is already active in this process",
 )
 
 // Recorder wraps [runtime/trace.FlightRecorder] with safe lifecycle
@@ -64,18 +56,18 @@ func New(opts ...Option) (*Recorder, error) {
 }
 
 // Start begins buffering execution trace in memory.
-// Returns [ErrAlreadyEnabled] if another flight recorder is already active
-// in this process.
+// Returns [*AlreadyEnabledError] (which satisfies [errors.Is] with
+// [ErrAlreadyEnabled]) if another flight recorder or tracer is already
+// active in this process.
 func (r *Recorder) Start() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if err := r.fr.Start(); err != nil {
-		if err.Error() == "flight recorder already enabled" {
-			return fmt.Errorf("%w: %w", ErrAlreadyEnabled, err)
-		}
-
-		return fmt.Errorf("flightrecorder: starting recorder: %w", err)
+		// FlightRecorder.Start only fails when a recorder or tracer is
+		// already active. Both "flight recorder already enabled" and
+		// "tracing is already enabled" indicate the same condition.
+		return &AlreadyEnabledError{Cause: err}
 	}
 
 	return nil
@@ -103,7 +95,9 @@ func (r *Recorder) Close() error {
 	r.fr.Stop()
 
 	if lf, ok := r.writer.(*lazyFile); ok {
-		_ = lf.Close()
+		if err := lf.Close(); err != nil {
+			return &SnapshotError{Op: "close", Path: lf.path, Err: err}
+		}
 	}
 
 	return nil
@@ -210,7 +204,13 @@ func (r *Recorder) capture() error {
 	}
 
 	if _, err := r.fr.WriteTo(r.writer); err != nil {
-		return fmt.Errorf("flightrecorder: writing snapshot: %w", err)
+		// If the writer (e.g., lazyFile) already returned a typed
+		// SnapshotError, pass it through without double-wrapping.
+		if snapErr, ok := errors.AsType[*SnapshotError](err); ok {
+			return snapErr
+		}
+
+		return &SnapshotError{Op: "write", Path: "", Err: err}
 	}
 
 	return nil
@@ -218,7 +218,7 @@ func (r *Recorder) capture() error {
 
 // captureToFile writes the buffered trace to a file at path.
 // Same once.Do + lock pattern as capture but with a fresh file.
-func (r *Recorder) captureToFile(path string) error {
+func (r *Recorder) captureToFile(path string) (err error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -228,12 +228,16 @@ func (r *Recorder) captureToFile(path string) error {
 
 	f, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("flightrecorder: creating snapshot file %s: %w", path, err)
+		return &SnapshotError{Op: "create", Path: path, Err: err}
 	}
-	defer func() { _ = f.Close() }()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil && err == nil {
+			err = &SnapshotError{Op: "close", Path: path, Err: closeErr}
+		}
+	}()
 
 	if _, err := r.fr.WriteTo(f); err != nil {
-		return fmt.Errorf("flightrecorder: writing snapshot to %s: %w", path, err)
+		return &SnapshotError{Op: "write", Path: path, Err: err}
 	}
 
 	return nil

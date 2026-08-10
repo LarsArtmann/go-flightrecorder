@@ -40,4 +40,31 @@
 //	}, trigger)
 //
 // Analyze the captured trace with: go tool trace snapshot.trace
+//
+// # Error handling
+//
+// The package returns typed errors so callers can handle failure modes
+// programmatically. All error types implement the standard [error]
+// interface and support [errors.Is] and [errors.As].
+//
+// - [ErrAlreadyEnabled] / [*AlreadyEnabledError] — another recorder is active.
+// - [*ConfigError] — invalid option passed to [New].
+// - [*SnapshotError] — IO failure during snapshot or close.
+//
+// Example: distinguish error categories after Start.
+//
+//	recorder, err := flightrecorder.New(opts...)
+//	if err != nil {
+//	    var cfgErr *flightrecorder.ConfigError
+//	    if errors.As(err, &cfgErr) {
+//	        log.Printf("bad config: %s %s", cfgErr.Field, cfgErr.Constraint)
+//	    }
+//	    return err
+//	}
+//
+//	if err := recorder.Start(); err != nil {
+//	    if errors.Is(err, flightrecorder.ErrAlreadyEnabled) {
+//	        // Another recorder is active — reuse it or stop it first.
+//	    }
+//	}
 package flightrecorder

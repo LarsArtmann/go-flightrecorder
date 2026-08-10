@@ -569,3 +569,150 @@ func TestRecorder_LazyFileCloseWithoutSnapshot(t *testing.T) {
 		t.Fatalf("expected file NOT to be created when no snapshot was taken, got err: %v", err)
 	}
 }
+
+func TestConfigError_TypedMatching(t *testing.T) {
+	t.Parallel()
+
+	_, err := flightrecorder.New(flightrecorder.WithMinAge(-1 * time.Second))
+	if err == nil {
+		t.Fatal("expected error for negative MinAge")
+	}
+
+	var cfgErr *flightrecorder.ConfigError
+	if !errors.As(err, &cfgErr) {
+		t.Fatalf("expected *ConfigError, got %T: %v", err, err)
+	}
+
+	if cfgErr.Field != "MinAge" {
+		t.Errorf("Field = %q, want %q", cfgErr.Field, "MinAge")
+	}
+
+	if cfgErr.Constraint != "must be positive" {
+		t.Errorf("Constraint = %q, want %q", cfgErr.Constraint, "must be positive")
+	}
+}
+
+func TestConfigError_MaxBytesZero(t *testing.T) {
+	t.Parallel()
+
+	_, err := flightrecorder.New(flightrecorder.WithMaxBytes(0))
+	if err == nil {
+		t.Fatal("expected error for zero MaxBytes")
+	}
+
+	var cfgErr *flightrecorder.ConfigError
+	if !errors.As(err, &cfgErr) {
+		t.Fatalf("expected *ConfigError, got %T: %v", err, err)
+	}
+
+	if cfgErr.Field != "MaxBytes" {
+		t.Errorf("Field = %q, want %q", cfgErr.Field, "MaxBytes")
+	}
+}
+
+func TestAlreadyEnabledError_TypedMatching(t *testing.T) {
+	recorderMu.Lock()
+	defer recorderMu.Unlock()
+
+	r1, _ := flightrecorder.New()
+	r2, _ := flightrecorder.New()
+
+	if err := r1.Start(); err != nil {
+		t.Fatalf("first Start() error: %v", err)
+	}
+	t.Cleanup(r1.Stop)
+
+	err := r2.Start()
+
+	// errors.Is with sentinel — backward compatible.
+	if !errors.Is(err, flightrecorder.ErrAlreadyEnabled) {
+		t.Fatalf("errors.Is(err, ErrAlreadyEnabled) = false, err: %v", err)
+	}
+
+	// errors.As with typed error — richer context.
+	var ae *flightrecorder.AlreadyEnabledError
+	if !errors.As(err, &ae) {
+		t.Fatalf("expected *AlreadyEnabledError, got %T: %v", err, err)
+	}
+
+	if ae.Cause == nil {
+		t.Error("AlreadyEnabledError.Cause should not be nil")
+	}
+}
+
+func TestSnapshotError_WriteFailure(t *testing.T) {
+	recorderMu.Lock()
+	defer recorderMu.Unlock()
+
+	r, _ := flightrecorder.New(
+		flightrecorder.WithMinAge(50*time.Millisecond),
+		flightrecorder.WithMaxBytes(1<<20),
+		flightrecorder.WithWriter(&failingWriter{}),
+	)
+
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
+	t.Cleanup(r.Stop)
+
+	time.Sleep(100 * time.Millisecond)
+
+	err := r.Snapshot(context.Background())
+	if err == nil {
+		t.Fatal("expected error from failing writer")
+	}
+
+	var snapErr *flightrecorder.SnapshotError
+	if !errors.As(err, &snapErr) {
+		t.Fatalf("expected *SnapshotError, got %T: %v", err, err)
+	}
+
+	if snapErr.Op != "write" {
+		t.Errorf("Op = %q, want %q", snapErr.Op, "write")
+	}
+}
+
+func TestSnapshotError_FileCreationFailure(t *testing.T) {
+	recorderMu.Lock()
+	defer recorderMu.Unlock()
+
+	r, _ := flightrecorder.New(
+		flightrecorder.WithMinAge(50*time.Millisecond),
+		flightrecorder.WithMaxBytes(1<<20),
+		flightrecorder.WithFile("/nonexistent/dir/trace.bin"),
+	)
+
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
+	t.Cleanup(r.Stop)
+
+	time.Sleep(100 * time.Millisecond)
+
+	err := r.Snapshot(context.Background())
+	if err == nil {
+		t.Fatal("expected error from invalid file path")
+	}
+
+	var snapErr *flightrecorder.SnapshotError
+	if !errors.As(err, &snapErr) {
+		t.Fatalf("expected *SnapshotError, got %T: %v", err, err)
+	}
+
+	if snapErr.Op != "create" {
+		t.Errorf("Op = %q, want %q", snapErr.Op, "create")
+	}
+
+	if snapErr.Path != "/nonexistent/dir/trace.bin" {
+		t.Errorf("Path = %q, want %q", snapErr.Path, "/nonexistent/dir/trace.bin")
+	}
+}
+
+// failingWriter is an [io.Writer] that always returns an error.
+type failingWriter struct{}
+
+func (*failingWriter) Write(_ []byte) (int, error) {
+	return 0, errWriteFailed
+}
+
+var errWriteFailed = errors.New("write failed")
