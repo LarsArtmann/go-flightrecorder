@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-10
+
+### Added
+
+- Typed error system: `ConfigError`, `AlreadyEnabledError`, and
+  `SnapshotError` types with `errors.As` support and `errors.AsType`
+  helper for generic typed extraction (`errors.go`)
+- `SECURITY.md` with private vulnerability reporting policy and
+  response timeline (`SECURITY.md`)
+- `TestRecorder_CloseIdempotentAfterSnapshot` regression test
+  (`recorder_test.go`)
+
+### Changed
+
+- Updated package documentation with typed error examples (`doc.go`)
+- Removed stale "zero dependencies" and Go Report Card references
+  (`README.md`, `CONTRIBUTING.md`)
+
+### Fixed
+
+- `lazyFile.Close` now nils out the file handle after closing, making
+  `Recorder.Close` truly idempotent — a second `Close` after a snapshot
+  no longer returns "file already closed" (`options.go`)
+
+## [0.1.0] - 2026-08-10
+
 ### Added
 
 - Initial extraction from go-cqrs-lite as a standalone, zero-dependency library
@@ -48,6 +74,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - All `r.Start()` calls in tests now check error return values (errcheck)
-- `lazyFile.Close` now nils out the file handle after closing, making
-  `Recorder.Close` truly idempotent — a second `Close` after a snapshot
-  no longer returns "file already closed" (`options.go`)
