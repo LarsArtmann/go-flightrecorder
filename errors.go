@@ -16,7 +16,7 @@ import (
 //	}
 //
 // For richer error context, use [errors.As] with [*AlreadyEnabledError].
-var ErrAlreadyEnabled = errors.New(
+var ErrAlreadyEnabled = errors.New( //nolint:erraudit // stdlib-only project; sentinel is idiomatic Go, not an oops target
 	"flightrecorder: another flight recorder is already active in this process",
 )
 
