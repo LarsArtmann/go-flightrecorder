@@ -1,7 +1,6 @@
 # go-flightrecorder
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/larsartmann/go-flightrecorder.svg)](https://pkg.go.dev/github.com/larsartmann/go-flightrecorder)
-[![Go Report Card](https://goreportcard.com/badge/github.com/larsartmann/go-flightrecorder)](https://goreportcard.com/report/github.com/larsartmann/go-flightrecorder)
 [![CI](https://github.com/LarsArtmann/go-flightrecorder/actions/workflows/ci.yml/badge.svg)](https://github.com/LarsArtmann/go-flightrecorder/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
