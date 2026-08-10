@@ -25,3 +25,37 @@ coverage.out
 .DS_Store
 ._*
 Thumbs.db
+
+# >>> buildflow-managed (.gitignore) >>>
+# Auto-managed by buildflow. Edit outside these markers; this block is regenerated on `buildflow --fix`.
+
+## Secrets and environment
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+## Databases
+*.db
+*.db-shm
+*.db-wal
+
+## Operating systems
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+## Logs and temporaries
+*.log
+*.tmp
+*.temp
+
+## Buildflow artifacts
+audit-log.*
+workflow-audit-log.*
+.buildflow-workflow-baseline.json
+
+## Reports and coverage
+/coverage
+# <<< buildflow-managed (.gitignore) <<<
