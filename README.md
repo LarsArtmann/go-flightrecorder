@@ -120,6 +120,72 @@ Design your application around a single recorder, created at startup and shared 
 | `WithMaxBytes(n)` | 10 MiB | Maximum in-memory trace buffer size. ~10 MB/s for a busy service. |
 | `WithWriter(w)` | `io.Discard` | Destination for `Snapshot()` writes. |
 | `WithFile(path)` | (none) | Lazy-opened file for snapshot output. File is created on first snapshot. |
+| `WithCompression(level)` | 0 (off) | Gzip compression level (1-9, -1=default, -2=huffman-only). Decompress with `gunzip` before `go tool trace`. |
+| `WithSnapshotDir(dir)` | (none) | Directory for auto-named, retained snapshots. Enables `SnapshotToDir`. |
+| `WithSnapshotPrefix(p)` | `snapshot-` | Filename prefix for `SnapshotToDir` files. |
+| `WithMaxSnapshots(n)` | 0 (unlimited) | Retention limit; prunes oldest snapshots in the directory. |
+| `WithMetrics(hook)` | no-op | Callback invoked after every capture with a `SnapshotEvent`. |
+| `WithLogger(hook)` | no-op | Callback for lifecycle diagnostics (start, stop, cleanup). |
+
+## Snapshot-to-directory with retention
+
+For auto-triggered captures, write timestamped snapshots to a directory and
+retain only the most recent:
+
+```go
+recorder, _ := flightrecorder.New(
+    flightrecorder.WithSnapshotDir("/var/lib/myapp/traces"),
+    flightrecorder.WithCompression(gzip.BestSpeed),
+    flightrecorder.WithMaxSnapshots(50),
+)
+recorder.Start()
+defer recorder.Close()
+
+// Each call produces a new timestamped file; retention keeps the newest 50.
+path, _ := recorder.SnapshotToDir(context.Background())
+// path == "/var/lib/myapp/traces/snapshot-1700000000000000000.trace.gz"
+```
+
+`SnapshotToFile(ctx, path)` writes a fixed path (overwrite). `SnapshotToDir(ctx)`
+writes auto-generated unique names (append). Two methods, two intents.
+
+## Non-blocking capture
+
+`SnapshotIfAsync` captures in a background goroutine so trace I/O never blocks
+the hot path (e.g., HTTP middleware). `Stop` and `Close` drain in-flight
+captures before shutting down:
+
+```go
+// In middleware, after a slow request:
+recorder.SnapshotIfAsync(detachedCtx, flightrecorder.TriggerContext{
+    Kind:     "http.request",
+    Duration: 250 * time.Millisecond,
+}, flightrecorder.OnErrorOrLatency(100*time.Millisecond))
+```
+
+Pass a context whose lifetime exceeds the write (e.g., detached from the
+request) if the snapshot must survive the handler returning.
+
+## Observability without dependencies
+
+Wire your own metrics or logging backend via callback hooks — the library
+stays stdlib-only:
+
+```go
+recorder, _ := flightrecorder.New(
+    flightrecorder.WithMetrics(func(e flightrecorder.SnapshotEvent, err error) {
+        if err != nil {
+            snapshotErrors.Inc()
+            return
+        }
+        snapshotTotal.WithLabelValues(e.Source).Inc()
+        snapshotBytes.Observe(float64(e.Bytes))
+    }),
+    flightrecorder.WithLogger(func(format string, args ...any) {
+        slog.Info(fmt.Sprintf(format, args...))
+    }),
+)
+```
 
 ## License
 

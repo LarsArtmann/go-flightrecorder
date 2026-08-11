@@ -16,9 +16,15 @@
 ## High Impact
 
 No high-impact tasks open. `v0.1.1` tagged and pushed; see `CHANGELOG.md`.
+The operational feature set (compression, directory snapshots, retention,
+async capture, observability hooks, nil-safe lifecycle) is implemented and
+under test — see the `[Unreleased]` section of `CHANGELOG.md`.
 
 ## Recently completed (verified)
 
+- **Operational features from real-world consumer feedback** — compression,
+  snapshot-to-directory, retention, non-blocking capture, observability hooks,
+  and nil-safe lifecycle. 58 tests pass with `-race`; lint clean.
 - **Publish to GitHub** — repo is public and `master` is in sync with `origin`.
 - **Tag and push `v0.1.0` + `v0.1.1`** — both tags on remote; consumers can pin versions.
 - **Add edge case tests for `lazyFile`** — `TestRecorder_LazyFileCloseWithoutSnapshot`, `TestSnapshotError_FileCreationFailure`, `TestRecorder_CloseIdempotentAfterSnapshot` all pass.

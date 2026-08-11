@@ -17,17 +17,23 @@
 // # Quick start
 //
 //	recorder, _ := flightrecorder.New(
-//	    flightrecorder.WithMinAge(10*time.Second),
-//	    flightrecorder.WithMaxBytes(1<<20), // 1 MiB
-//	    flightrecorder.WithWriter(os.Stdout),
+//		flightrecorder.WithSnapshotDir("/var/lib/app/traces"),
+//		flightrecorder.WithCompression(gzip.BestSpeed), // 10x smaller files
+//		flightrecorder.WithMaxSnapshots(50),           // retain newest 50
+//		flightrecorder.WithMinAge(10 * time.Second),
+//		flightrecorder.WithMaxBytes(1 << 20),          // 1 MiB
 //	)
 //	if err := recorder.Start(); err != nil {
-//	    log.Fatal(err)
+//		log.Fatal(err)
 //	}
-//	defer recorder.Close() // Close stops recording AND closes any file writers
+//	defer recorder.Close()
 //
 //	// Later, when something goes wrong:
-//	recorder.Snapshot(context.Background())
+//	path, _ := recorder.SnapshotToDir(context.Background())
+//
+// Decompress before analysing (go tool trace does not read .gz directly):
+//
+//	gunzip snapshot-*.trace.gz && go tool trace snapshot-*.trace
 //
 // # Trigger integration
 //
@@ -40,6 +46,32 @@
 //	}, trigger)
 //
 // Analyze the captured trace with: go tool trace snapshot.trace
+//
+// # Snapshot-to-directory, compression, and retention
+//
+// For auto-triggered captures, write timestamped snapshots to a directory,
+// compress them, and retain only the newest:
+//
+//	recorder, _ := flightrecorder.New(
+//	    flightrecorder.WithSnapshotDir("/var/lib/app/traces"),
+//	    flightrecorder.WithCompression(gzip.BestSpeed),
+//	    flightrecorder.WithMaxSnapshots(50),
+//	)
+//	path, _ := recorder.SnapshotToDir(context.Background())
+//
+// # Non-blocking capture and graceful drain
+//
+// SnapshotIfAsync captures in a background goroutine so trace I/O does not
+// block hot paths. Stop and Close drain all in-flight captures before
+// shutting down.
+//
+// # Observability hooks (no dependencies)
+//
+// WithMetrics and WithLogger register callbacks so consumers wire their own
+// Prometheus, OpenTelemetry, or log/slog backend without the library importing
+// any of them. The [SnapshotEvent] passed to the metrics hook carries the
+// [TriggerContext.Kind] and [TriggerContext.Type] so dashboards can label by
+// operation (e.g. "http.request" vs "event.handler").
 //
 // # Error handling
 //

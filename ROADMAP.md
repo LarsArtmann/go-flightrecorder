@@ -37,13 +37,17 @@ Raw ideas:
 
 Make snapshot events visible to monitoring systems.
 
-Raw ideas:
+**Status:** The dependency-free callback layer is shipped — `WithMetrics`
+(`MetricsHook` / `SnapshotEvent`) and `WithLogger` (`LoggerHook`) let consumers
+wire Prometheus, OpenTelemetry, or `log/slog` without the library importing
+them. Remaining raw ideas:
 
-- Callback or channel notification on snapshot capture (for metrics counters)
 - Prometheus metrics integration (snapshot count, last capture timestamp,
-  buffer fill ratio)
+  buffer fill ratio) — as an adapter built on top of `WithMetrics`, in a
+  separate package
 - Structured logging of trigger evaluations (which trigger fired, why)
-- OpenTelemetry span events on snapshot capture
+- OpenTelemetry span events on snapshot capture — as an adapter built on top of
+  `WithMetrics`
 
 ### 4. Multi-Sink Snapshots
 

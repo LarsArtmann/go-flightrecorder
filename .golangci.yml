@@ -195,6 +195,7 @@ linters:
                 - f
                 - p
                 - tc
+                - cc
             ignore-type-assert-ok: true
         wrapcheck:
             ignore-sigs:

@@ -36,20 +36,30 @@
 | Snapshot to file                | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:153` (`SnapshotToFile`); tested                         |
 | Once-semantics (first wins)     | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:141`; prevents snapshot races; tested concurrently      |
 | Reset (re-arm snapshot latch)   | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:194`; tested by `TestRecorder_ResetAllowsSecondSnapshot`|
-| Trigger-based snapshot          | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:176` (`SnapshotIf`); delegates to `TriggerFunc`         |
-| Context cancellation            | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:133-137`; pre-write check; tested for both methods      |
-| Snapshot when not enabled       | 🟢 `FULLY_FUNCTIONAL` | Silent no-op, returns nil; tested by `TestRecorder_SnapshotWhenNotEnabled` |
-| Concurrent snapshot safety      | 🟢 `FULLY_FUNCTIONAL` | 10 goroutines tested; only first wins; `TestRecorder_ConcurrentSnapshots` |
+| Trigger-based snapshot          | 🟢 `FULLY_FUNCTIONAL` | `recorder.go` (`SnapshotIf`); delegates to `TriggerFunc`         |
+| Context cancellation            | 🟢 `FULLY_FUNCTIONAL` | Pre-write check; tested for all capture methods                      |
+| Snapshot when not enabled       | 🟢 `FULLY_FUNCTIONAL` | Silent no-op, returns nil; tested                                  |
+| Concurrent snapshot safety      | 🟢 `FULLY_FUNCTIONAL` | 10 goroutines tested; only first wins                              |
+| Snapshot-to-directory           | 🟢 `FULLY_FUNCTIONAL` | `SnapshotToDir`; auto-timestamped filenames; not once-latched       |
+| Snapshot-to-writer (escape hatch) | 🟢 `FULLY_FUNCTIONAL` | `SnapshotToWriter`; low-level write to arbitrary `io.Writer`; not once-latched |
+| Non-blocking capture            | 🟢 `FULLY_FUNCTIONAL` | `SnapshotIfAsync`; background goroutine; drained by Stop/Close      |
 
 ## Configuration
 
 | Feature                        | Status                | Notes                                                             |
 | ------------------------------ | --------------------- | ----------------------------------------------------------------- |
-| MinAge option                  | 🟢 `FULLY_FUNCTIONAL` | `options.go:50`; default 10s; validated positive                  |
-| MaxBytes option                | 🟢 `FULLY_FUNCTIONAL` | `options.go:59`; default 10 MiB; validated non-zero               |
-| Writer sink (io.Writer)        | 🟢 `FULLY_FUNCTIONAL` | `options.go:68`; default `io.Discard`                             |
-| Lazy file sink                 | 🟢 `FULLY_FUNCTIONAL` | `options.go:77` (`WithFile`); file opened on first write; tested incl. close-without-snapshot |
-| Config validation              | 🟢 `FULLY_FUNCTIONAL` | `options.go:31`; rejects zero/negative minAge, zero maxBytes      |
+| MinAge option                  | 🟢 `FULLY_FUNCTIONAL` | `options.go`; default 10s; validated positive                     |
+| MaxBytes option                | 🟢 `FULLY_FUNCTIONAL` | `options.go`; default 10 MiB; validated non-zero                  |
+| Writer sink (io.Writer)        | 🟢 `FULLY_FUNCTIONAL` | `options.go`; default `io.Discard`                                |
+| Lazy file sink                 | 🟢 `FULLY_FUNCTIONAL` | `options.go` (`WithFile`); file opened on first write; tested incl. close-without-snapshot |
+| Config validation              | 🟢 `FULLY_FUNCTIONAL` | `options.go`; rejects zero/negative minAge, zero maxBytes, invalid compression, negative retention |
+| Compression                    | 🟢 `FULLY_FUNCTIONAL` | `WithCompression`; stdlib gzip; `.trace.gz` loadable by `go tool trace` |
+| Snapshot directory             | 🟢 `FULLY_FUNCTIONAL` | `WithSnapshotDir`; MkdirAll on first use; tested                  |
+| Filename prefix                | 🟢 `FULLY_FUNCTIONAL` | `WithSnapshotPrefix`; default `snapshot-`; tested                 |
+| Retention                      | 🟢 `FULLY_FUNCTIONAL` | `WithMaxSnapshots`; prunes oldest after capture and at Start      |
+| Metrics hook                   | 🟢 `FULLY_FUNCTIONAL` | `WithMetrics`; `SnapshotEvent` with duration/bytes/path/source/kind/type |
+| Logger hook                    | 🟢 `FULLY_FUNCTIONAL` | `WithLogger`; lifecycle diagnostics; no deps                      |
+| Nil-safe lifecycle             | 🟢 `FULLY_FUNCTIONAL` | `Enabled`/`Stop`/`Close` on nil receiver; tested                  |
 
 ## Trigger System
 
