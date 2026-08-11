@@ -117,8 +117,8 @@ func WithFile(path string) Option {
 // compression entirely; pass [gzip.DefaultCompression] (-1), [gzip.BestSpeed]
 // (1), [gzip.BestCompression] (9), or [gzip.HuffmanOnly] (-2) to enable it.
 //
-// Compressed snapshot files use the ".trace.gz" extension and are loadable by
-// `go tool trace` (supported since Go 1.19).
+// Compressed snapshot files use the ".trace.gz" extension. Decompress with
+// `gunzip` before analysis — `go tool trace` does not read gzip directly.
 func WithCompression(level int) Option {
 	return func(c *recorderConfig) {
 		c.compressLevel = level

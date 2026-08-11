@@ -53,7 +53,7 @@
 | Writer sink (io.Writer)        | 🟢 `FULLY_FUNCTIONAL` | `options.go`; default `io.Discard`                                |
 | Lazy file sink                 | 🟢 `FULLY_FUNCTIONAL` | `options.go` (`WithFile`); file opened on first write; tested incl. close-without-snapshot |
 | Config validation              | 🟢 `FULLY_FUNCTIONAL` | `options.go`; rejects zero/negative minAge, zero maxBytes, invalid compression, negative retention |
-| Compression                    | 🟢 `FULLY_FUNCTIONAL` | `WithCompression`; stdlib gzip; `.trace.gz` loadable by `go tool trace` |
+| Compression                    | 🟢 `FULLY_FUNCTIONAL` | `WithCompression`; stdlib gzip; `.trace.gz` requires `gunzip` before `go tool trace` (does not read gzip directly) |
 | Snapshot directory             | 🟢 `FULLY_FUNCTIONAL` | `WithSnapshotDir`; MkdirAll on first use; tested                  |
 | Filename prefix                | 🟢 `FULLY_FUNCTIONAL` | `WithSnapshotPrefix`; default `snapshot-`; tested                 |
 | Retention                      | 🟢 `FULLY_FUNCTIONAL` | `WithMaxSnapshots`; prunes oldest after capture and at Start      |
