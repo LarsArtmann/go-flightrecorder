@@ -217,24 +217,24 @@ func (r *Recorder) Enabled() bool {
 // If the recorder is not enabled or has already been snapshotted,
 // Snapshot is a no-op and returns nil.
 func (r *Recorder) Snapshot(ctx context.Context) error {
-	return r.snapshot(ctx, captureCtx{ //nolint:exhaustruct // no trigger context for manual captures
+	return r.snapshot(ctx, captureMeta{ //nolint:exhaustruct // no trigger context for manual captures
 		Source: SnapshotSourceManual,
 	})
 }
 
-// captureCtx carries capture-origin metadata that ends up on [SnapshotEvent].
+// captureMeta carries capture-origin metadata that ends up on [SnapshotEvent].
 // Kind and Type are empty for manual captures; they carry [TriggerContext]
 // values for triggered and asynchronous captures so metrics hooks can label by
 // operation.
-type captureCtx struct {
+type captureMeta struct {
 	Source string
 	Kind   string
 	Type   string
 }
 
-// snapshot is the shared once-latched capture for writer sinks. The captureCtx
+// snapshot is the shared once-latched capture for writer sinks. The captureMeta
 // labels the capture origin for the [MetricsHook].
-func (r *Recorder) snapshot(ctx context.Context, cc captureCtx) error {
+func (r *Recorder) snapshot(ctx context.Context, origin captureMeta) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err() //nolint:wrapcheck // standard ctx propagation
@@ -248,7 +248,7 @@ func (r *Recorder) snapshot(ctx context.Context, cc captureCtx) error {
 	)
 
 	r.once.Do(func() {
-		event, captured, snapErr = r.captureToWriter(cc)
+		event, captured, snapErr = r.captureToWriter(origin)
 	})
 
 	if captured {
@@ -279,7 +279,7 @@ func (r *Recorder) SnapshotToFile(ctx context.Context, path string) error {
 	)
 
 	r.once.Do(func() {
-		event, captured, err = r.captureToFile(path, captureCtx{ //nolint:exhaustruct // no trigger context for manual
+		event, captured, err = r.captureToFile(path, captureMeta{ //nolint:exhaustruct // no trigger context for manual
 			Source: SnapshotSourceManual,
 		})
 	})
@@ -303,7 +303,7 @@ func (r *Recorder) SnapshotToFile(ctx context.Context, path string) error {
 // Calling SnapshotToDir without [WithSnapshotDir] returns a [*ConfigError].
 // When [WithMaxSnapshots] is set, retention cleanup runs after each write.
 func (r *Recorder) SnapshotToDir(ctx context.Context) (string, error) {
-	return r.snapshotToDir(ctx, captureCtx{ //nolint:exhaustruct // no trigger context for manual
+	return r.snapshotToDir(ctx, captureMeta{ //nolint:exhaustruct // no trigger context for manual
 		Source: SnapshotSourceManual,
 	})
 }
@@ -311,7 +311,7 @@ func (r *Recorder) SnapshotToDir(ctx context.Context) (string, error) {
 // snapshotToDir is the internal variant that carries capture-origin metadata
 // so asynchronous captures ([Recorder.SnapshotIfAsync]) can thread their
 // [TriggerContext] through to the metrics hook.
-func (r *Recorder) snapshotToDir(ctx context.Context, cc captureCtx) (string, error) {
+func (r *Recorder) snapshotToDir(ctx context.Context, origin captureMeta) (string, error) {
 	if r.snapshotDir == "" {
 		return "", &ConfigError{
 			Field:      "SnapshotDir",
@@ -340,7 +340,7 @@ func (r *Recorder) snapshotToDir(ctx context.Context, cc captureCtx) (string, er
 		r.snapshotPrefix+strconv.FormatInt(time.Now().UnixNano(), 10)+suffix,
 	)
 
-	event, captured, err := r.captureToFile(path, cc)
+	event, captured, err := r.captureToFile(path, origin)
 	if captured {
 		r.metricsHook(event, err)
 	}
@@ -370,7 +370,7 @@ func (r *Recorder) SnapshotIf(ctx context.Context, tc TriggerContext, trigger Tr
 		return false
 	}
 
-	return r.snapshot(ctx, captureCtx{
+	return r.snapshot(ctx, captureMeta{
 		Source: SnapshotSourceTrigger,
 		Kind:   tc.Kind,
 		Type:   tc.Type,
@@ -416,7 +416,7 @@ func (r *Recorder) SnapshotIfAsync(ctx context.Context, tc TriggerContext, trigg
 	snapshotDir := r.snapshotDir
 	r.mu.Unlock()
 
-	cc := captureCtx{
+	origin := captureMeta{
 		Source: SnapshotSourceAsync,
 		Kind:   tc.Kind,
 		Type:   tc.Type,
@@ -426,9 +426,9 @@ func (r *Recorder) SnapshotIfAsync(ctx context.Context, tc TriggerContext, trigg
 		defer r.wg.Done()
 
 		if snapshotDir != "" {
-			_, _ = r.snapshotToDir(ctx, cc)
+			_, _ = r.snapshotToDir(ctx, origin)
 		} else {
-			_ = r.snapshot(ctx, cc)
+			_ = r.snapshot(ctx, origin)
 		}
 	}()
 
@@ -496,7 +496,7 @@ func (r *Recorder) Reset() {
 // The once.Do in the callers ensures only the first caller reaches it.
 // The bool result is false (with a zero event and nil error) when the recorder
 // is disabled or has no sink — i.e., nothing was attempted.
-func (r *Recorder) captureToWriter(cc captureCtx) (SnapshotEvent, bool, error) {
+func (r *Recorder) captureToWriter(origin captureMeta) (SnapshotEvent, bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -504,14 +504,14 @@ func (r *Recorder) captureToWriter(cc captureCtx) (SnapshotEvent, bool, error) {
 		return SnapshotEvent{}, false, nil //nolint:exhaustruct // zero-value: nothing attempted
 	}
 
-	event, err := r.writeTrace(r.writer, "", cc)
+	event, err := r.writeTrace(r.writer, "", origin)
 
 	return event, true, err
 }
 
 // captureToFile writes the buffered trace to a freshly created file at path.
 // The bool result is false when the recorder is disabled (no-op).
-func (r *Recorder) captureToFile(path string, cc captureCtx) (SnapshotEvent, bool, error) {
+func (r *Recorder) captureToFile(path string, origin captureMeta) (SnapshotEvent, bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -524,16 +524,16 @@ func (r *Recorder) captureToFile(path string, cc captureCtx) (SnapshotEvent, boo
 		wrapped := &SnapshotError{Op: "create", Path: path, Err: err}
 		r.metricsHook(SnapshotEvent{ //nolint:exhaustruct // no bytes/duration: write never started
 			Path:       path,
-			Source:     cc.Source,
-			Kind:       cc.Kind,
-			Type:       cc.Type,
+			Source:     origin.Source,
+			Kind:       origin.Kind,
+			Type:       origin.Type,
 			Compressed: r.compressLevel != 0,
 		}, wrapped)
 
 		return SnapshotEvent{}, true, wrapped
 	}
 
-	event, writeErr := r.writeTraceFile(f, path, cc)
+	event, writeErr := r.writeTraceFile(f, path, origin)
 
 	return event, true, writeErr
 }
@@ -541,7 +541,7 @@ func (r *Recorder) captureToFile(path string, cc captureCtx) (SnapshotEvent, boo
 // writeTrace performs the trace write to the given sink, applying compression
 // when configured, and timing/byte-counting for the [MetricsHook]. The caller
 // must hold r.mu.
-func (r *Recorder) writeTrace(w io.Writer, path string, cc captureCtx) (SnapshotEvent, error) {
+func (r *Recorder) writeTrace(w io.Writer, path string, origin captureMeta) (SnapshotEvent, error) {
 	counter := &countingWriter{w: w} //nolint:exhaustruct // n is intentionally zero
 
 	start := time.Now()
@@ -552,9 +552,9 @@ func (r *Recorder) writeTrace(w io.Writer, path string, cc captureCtx) (Snapshot
 		Bytes:      counter.n,
 		Path:       path,
 		Compressed: r.compressLevel != 0,
-		Source:     cc.Source,
-		Kind:       cc.Kind,
-		Type:       cc.Type,
+		Source:     origin.Source,
+		Kind:       origin.Kind,
+		Type:       origin.Type,
 	}
 
 	if err != nil {
@@ -566,8 +566,8 @@ func (r *Recorder) writeTrace(w io.Writer, path string, cc captureCtx) (Snapshot
 
 // writeTraceFile is writeTrace for an *os.File that must be closed afterwards.
 // A close error after a successful write is reported as a SnapshotError.
-func (r *Recorder) writeTraceFile(f *os.File, path string, cc captureCtx) (SnapshotEvent, error) {
-	event, err := r.writeTrace(f, path, cc)
+func (r *Recorder) writeTraceFile(f *os.File, path string, origin captureMeta) (SnapshotEvent, error) {
+	event, err := r.writeTrace(f, path, origin)
 
 	if closeErr := f.Close(); closeErr != nil && err == nil {
 		err = &SnapshotError{Op: "close", Path: path, Err: closeErr}
