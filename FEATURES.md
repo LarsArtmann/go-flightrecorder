@@ -19,56 +19,56 @@
 
 ## Lifecycle Management
 
-| Feature                        | Status                | Notes                                                              |
-| ------------------------------ | --------------------- | ------------------------------------------------------------------ |
-| Recorder creation with options | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:45` (`New`); config validation at `options.go:31`    |
-| Start/Stop recording           | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:68,86`; tested by `TestRecorder_Lifecycle`           |
-| Idempotent Stop                | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:86`; multiple Stop calls are no-ops; tested          |
-| Close (Stop + resource cleanup) | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:98`; closes lazy file handles; idempotent; tested   |
-| Enabled status reporting       | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:112`; tested in lifecycle tests                       |
-| Process-global singleton guard | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:72-78`; returns `ErrAlreadyEnabled`; tested          |
+| Feature                         | Status                | Notes                                                          |
+| ------------------------------- | --------------------- | -------------------------------------------------------------- |
+| Recorder creation with options  | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:45` (`New`); config validation at `options.go:31` |
+| Start/Stop recording            | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:68,86`; tested by `TestRecorder_Lifecycle`        |
+| Idempotent Stop                 | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:86`; multiple Stop calls are no-ops; tested       |
+| Close (Stop + resource cleanup) | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:98`; closes lazy file handles; idempotent; tested |
+| Enabled status reporting        | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:112`; tested in lifecycle tests                   |
+| Process-global singleton guard  | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:72-78`; returns `ErrAlreadyEnabled`; tested       |
 
 ## Snapshot Capture
 
-| Feature                         | Status                | Notes                                                                |
-| ------------------------------- | --------------------- | -------------------------------------------------------------------- |
-| Snapshot to configured writer   | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:132`; once-semantics via `sync.Once`; tested           |
-| Snapshot to file                | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:153` (`SnapshotToFile`); tested                         |
-| Once-semantics (first wins)     | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:141`; prevents snapshot races; tested concurrently      |
-| Reset (re-arm snapshot latch)   | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:194`; tested by `TestRecorder_ResetAllowsSecondSnapshot`|
-| Trigger-based snapshot          | 🟢 `FULLY_FUNCTIONAL` | `recorder.go` (`SnapshotIf`); delegates to `TriggerFunc`         |
-| Context cancellation            | 🟢 `FULLY_FUNCTIONAL` | Pre-write check; tested for all capture methods                      |
-| Snapshot when not enabled       | 🟢 `FULLY_FUNCTIONAL` | Silent no-op, returns nil; tested                                  |
-| Concurrent snapshot safety      | 🟢 `FULLY_FUNCTIONAL` | 10 goroutines tested; only first wins                              |
-| Snapshot-to-directory           | 🟢 `FULLY_FUNCTIONAL` | `SnapshotToDir`; auto-timestamped filenames; not once-latched       |
+| Feature                           | Status                | Notes                                                                          |
+| --------------------------------- | --------------------- | ------------------------------------------------------------------------------ |
+| Snapshot to configured writer     | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:132`; once-semantics via `sync.Once`; tested                      |
+| Snapshot to file                  | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:153` (`SnapshotToFile`); tested                                   |
+| Once-semantics (first wins)       | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:141`; prevents snapshot races; tested concurrently                |
+| Reset (re-arm snapshot latch)     | 🟢 `FULLY_FUNCTIONAL` | `recorder.go:194`; tested by `TestRecorder_ResetAllowsSecondSnapshot`          |
+| Trigger-based snapshot            | 🟢 `FULLY_FUNCTIONAL` | `recorder.go` (`SnapshotIf`); delegates to `TriggerFunc`                       |
+| Context cancellation              | 🟢 `FULLY_FUNCTIONAL` | Pre-write check; tested for all capture methods                                |
+| Snapshot when not enabled         | 🟢 `FULLY_FUNCTIONAL` | Silent no-op, returns nil; tested                                              |
+| Concurrent snapshot safety        | 🟢 `FULLY_FUNCTIONAL` | 10 goroutines tested; only first wins                                          |
+| Snapshot-to-directory             | 🟢 `FULLY_FUNCTIONAL` | `SnapshotToDir`; auto-timestamped filenames; not once-latched                  |
 | Snapshot-to-writer (escape hatch) | 🟢 `FULLY_FUNCTIONAL` | `SnapshotToWriter`; low-level write to arbitrary `io.Writer`; not once-latched |
-| Non-blocking capture            | 🟢 `FULLY_FUNCTIONAL` | `SnapshotIfAsync`; background goroutine; drained by Stop/Close      |
+| Non-blocking capture              | 🟢 `FULLY_FUNCTIONAL` | `SnapshotIfAsync`; background goroutine; drained by Stop/Close                 |
 
 ## Configuration
 
-| Feature                        | Status                | Notes                                                             |
-| ------------------------------ | --------------------- | ----------------------------------------------------------------- |
-| MinAge option                  | 🟢 `FULLY_FUNCTIONAL` | `options.go`; default 10s; validated positive                     |
-| MaxBytes option                | 🟢 `FULLY_FUNCTIONAL` | `options.go`; default 10 MiB; validated non-zero                  |
-| Writer sink (io.Writer)        | 🟢 `FULLY_FUNCTIONAL` | `options.go`; default `io.Discard`                                |
-| Lazy file sink                 | 🟢 `FULLY_FUNCTIONAL` | `options.go` (`WithFile`); file opened on first write; tested incl. close-without-snapshot |
-| Config validation              | 🟢 `FULLY_FUNCTIONAL` | `options.go`; rejects zero/negative minAge, zero maxBytes, invalid compression, negative retention |
-| Compression                    | 🟢 `FULLY_FUNCTIONAL` | `WithCompression`; stdlib gzip; `.trace.gz` requires `gunzip` before `go tool trace` (does not read gzip directly) |
-| Snapshot directory             | 🟢 `FULLY_FUNCTIONAL` | `WithSnapshotDir`; MkdirAll on first use; tested                  |
-| Filename prefix                | 🟢 `FULLY_FUNCTIONAL` | `WithSnapshotPrefix`; default `snapshot-`; tested                 |
-| Retention                      | 🟢 `FULLY_FUNCTIONAL` | `WithMaxSnapshots`; prunes oldest after capture and at Start      |
-| Metrics hook                   | 🟢 `FULLY_FUNCTIONAL` | `WithMetrics`; `SnapshotEvent` with duration/bytes/path/source/kind/type |
-| Logger hook                    | 🟢 `FULLY_FUNCTIONAL` | `WithLogger`; lifecycle diagnostics; no deps                      |
-| Nil-safe lifecycle             | 🟢 `FULLY_FUNCTIONAL` | `Enabled`/`Stop`/`Close` on nil receiver; tested                  |
+| Feature                 | Status                | Notes                                                                                                              |
+| ----------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| MinAge option           | 🟢 `FULLY_FUNCTIONAL` | `options.go`; default 10s; validated positive                                                                      |
+| MaxBytes option         | 🟢 `FULLY_FUNCTIONAL` | `options.go`; default 10 MiB; validated non-zero                                                                   |
+| Writer sink (io.Writer) | 🟢 `FULLY_FUNCTIONAL` | `options.go`; default `io.Discard`                                                                                 |
+| Lazy file sink          | 🟢 `FULLY_FUNCTIONAL` | `options.go` (`WithFile`); file opened on first write; tested incl. close-without-snapshot                         |
+| Config validation       | 🟢 `FULLY_FUNCTIONAL` | `options.go`; rejects zero/negative minAge, zero maxBytes, invalid compression, negative retention                 |
+| Compression             | 🟢 `FULLY_FUNCTIONAL` | `WithCompression`; stdlib gzip; `.trace.gz` requires `gunzip` before `go tool trace` (does not read gzip directly) |
+| Snapshot directory      | 🟢 `FULLY_FUNCTIONAL` | `WithSnapshotDir`; MkdirAll on first use; tested                                                                   |
+| Filename prefix         | 🟢 `FULLY_FUNCTIONAL` | `WithSnapshotPrefix`; default `snapshot-`; tested                                                                  |
+| Retention               | 🟢 `FULLY_FUNCTIONAL` | `WithMaxSnapshots`; prunes oldest after capture and at Start                                                       |
+| Metrics hook            | 🟢 `FULLY_FUNCTIONAL` | `WithMetrics`; `SnapshotEvent` with duration/bytes/path/source/kind/type                                           |
+| Logger hook             | 🟢 `FULLY_FUNCTIONAL` | `WithLogger`; lifecycle diagnostics; no deps                                                                       |
+| Nil-safe lifecycle      | 🟢 `FULLY_FUNCTIONAL` | `Enabled`/`Stop`/`Close` on nil receiver; tested                                                                   |
 
 ## Trigger System
 
-| Feature                        | Status                | Notes                                                             |
-| ------------------------------ | --------------------- | ----------------------------------------------------------------- |
-| Latency trigger                | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:37` (`OnLatency`); strict `>` comparison; tested      |
-| Error trigger                  | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:46` (`OnError`); fires on non-nil error; tested       |
-| Error-or-latency combo         | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:56` (`OnErrorOrLatency`); tested with 4-case table    |
-| Always-fire trigger            | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:64` (`OnAlways`); for testing/baseline; tested        |
-| OR composition (OnAny)         | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:78`; empty = never fires; tested                      |
-| AND composition (OnAll)        | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:98`; empty = vacuously true; tested                   |
-| TriggerContext data carrier    | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:8`; Kind, Type, Duration, Err fields; tested          |
+| Feature                     | Status                | Notes                                                          |
+| --------------------------- | --------------------- | -------------------------------------------------------------- |
+| Latency trigger             | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:37` (`OnLatency`); strict `>` comparison; tested   |
+| Error trigger               | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:46` (`OnError`); fires on non-nil error; tested    |
+| Error-or-latency combo      | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:56` (`OnErrorOrLatency`); tested with 4-case table |
+| Always-fire trigger         | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:64` (`OnAlways`); for testing/baseline; tested     |
+| OR composition (OnAny)      | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:78`; empty = never fires; tested                   |
+| AND composition (OnAll)     | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:98`; empty = vacuously true; tested                |
+| TriggerContext data carrier | 🟢 `FULLY_FUNCTIONAL` | `trigger.go:8`; Kind, Type, Duration, Err fields; tested       |

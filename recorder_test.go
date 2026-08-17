@@ -617,8 +617,8 @@ func TestConfigError_TypedMatching(t *testing.T) {
 		t.Fatal("expected error for negative MinAge")
 	}
 
-	var cfgErr *flightrecorder.ConfigError
-	if !errors.As(err, &cfgErr) {
+	cfgErr, ok := errors.AsType[*flightrecorder.ConfigError](err)
+	if !ok {
 		t.Fatalf("expected *ConfigError, got %T: %v", err, err)
 	}
 
@@ -639,8 +639,8 @@ func TestConfigError_MaxBytesZero(t *testing.T) {
 		t.Fatal("expected error for zero MaxBytes")
 	}
 
-	var cfgErr *flightrecorder.ConfigError
-	if !errors.As(err, &cfgErr) {
+	cfgErr, ok := errors.AsType[*flightrecorder.ConfigError](err)
+	if !ok {
 		t.Fatalf("expected *ConfigError, got %T: %v", err, err)
 	}
 
@@ -669,8 +669,8 @@ func TestAlreadyEnabledError_TypedMatching(t *testing.T) {
 	}
 
 	// errors.As with typed error — richer context.
-	var ae *flightrecorder.AlreadyEnabledError
-	if !errors.As(err, &ae) {
+	ae, ok := errors.AsType[*flightrecorder.AlreadyEnabledError](err)
+	if !ok {
 		t.Fatalf("expected *AlreadyEnabledError, got %T: %v", err, err)
 	}
 
@@ -701,8 +701,8 @@ func TestSnapshotError_WriteFailure(t *testing.T) {
 		t.Fatal("expected error from failing writer")
 	}
 
-	var snapErr *flightrecorder.SnapshotError
-	if !errors.As(err, &snapErr) {
+	snapErr, ok := errors.AsType[*flightrecorder.SnapshotError](err)
+	if !ok {
 		t.Fatalf("expected *SnapshotError, got %T: %v", err, err)
 	}
 
@@ -733,8 +733,8 @@ func TestSnapshotError_FileCreationFailure(t *testing.T) {
 		t.Fatal("expected error from invalid file path")
 	}
 
-	var snapErr *flightrecorder.SnapshotError
-	if !errors.As(err, &snapErr) {
+	snapErr, ok := errors.AsType[*flightrecorder.SnapshotError](err)
+	if !ok {
 		t.Fatalf("expected *SnapshotError, got %T: %v", err, err)
 	}
 
@@ -810,8 +810,8 @@ func TestRecorder_Compression_InvalidLevel(t *testing.T) {
 		t.Fatal("expected error for invalid compression level 99")
 	}
 
-	var cfgErr *flightrecorder.ConfigError
-	if !errors.As(err, &cfgErr) {
+	_, ok := errors.AsType[*flightrecorder.ConfigError](err)
+	if !ok {
 		t.Fatalf("expected *ConfigError, got %T: %v", err, err)
 	}
 }
@@ -916,8 +916,8 @@ func TestRecorder_Retention_InvalidNegative(t *testing.T) {
 		t.Fatal("expected error for negative MaxSnapshots")
 	}
 
-	var cfgErr *flightrecorder.ConfigError
-	if !errors.As(err, &cfgErr) {
+	_, ok := errors.AsType[*flightrecorder.ConfigError](err)
+	if !ok {
 		t.Fatalf("expected *ConfigError, got %T: %v", err, err)
 	}
 }
@@ -1018,8 +1018,8 @@ func TestRecorder_SnapshotToDir_WithoutDirReturnsConfigError(t *testing.T) {
 		t.Fatal("expected error when SnapshotToDir called without WithSnapshotDir")
 	}
 
-	var cfgErr *flightrecorder.ConfigError
-	if !errors.As(err, &cfgErr) {
+	_, ok := errors.AsType[*flightrecorder.ConfigError](err)
+	if !ok {
 		t.Fatalf("expected *ConfigError, got %T: %v", err, err)
 	}
 }

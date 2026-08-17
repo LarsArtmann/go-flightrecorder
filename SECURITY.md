@@ -16,11 +16,11 @@ and lets us coordinate a fix before any public disclosure.
 
 ## Response Timeline
 
-| Step                      | Target     |
-| ------------------------- | ---------- |
-| Acknowledgment of report  | 48 hours   |
-| Initial assessment        | 5 days     |
-| Fix or mitigation         | 30 days    |
+| Step                     | Target   |
+| ------------------------ | -------- |
+| Acknowledgment of report | 48 hours |
+| Initial assessment       | 5 days   |
+| Fix or mitigation        | 30 days  |
 
 If you have not received a response within 48 hours, please follow up by
 commenting on the private advisory.

@@ -1,246 +1,246 @@
 version: "2"
 run:
-    timeout: 3m
-    go: 1.26.5
-    build-tags:
-        - goexperiment.arenas
-        - goexperiment.goroutineleakprofile
-        - goexperiment.jsonv2
-        - goexperiment.runtimesecret
-        - goexperiment.simd
-    allow-parallel-runners: true
-    allow-serial-runners: true
-    issues-exit-code: 1
+  timeout: 3m
+  go: 1.26.5
+  build-tags:
+    - goexperiment.arenas
+    - goexperiment.goroutineleakprofile
+    - goexperiment.jsonv2
+    - goexperiment.runtimesecret
+    - goexperiment.simd
+  allow-parallel-runners: true
+  allow-serial-runners: true
+  issues-exit-code: 1
 output:
-    formats: {}
+  formats: {}
 linters:
-    enable:
-        - asasalint
-        - asciicheck
-        - bidichk
-        - bodyclose
-        - canonicalheader
-        - containedctx
-        - contextcheck
-        - copyloopvar
-        - cyclop
-        - decorder
-        - dogsled
-        - dupl
-        - dupword
-        - durationcheck
-        - embeddedstructfieldcheck
-        - err113
-        - errchkjson
-        - errname
-        - errorlint
-        - exhaustive
-        - exhaustruct
-        - exptostd
-        - fatcontext
-        - forbidigo
-        - forcetypeassert
-        - funlen
-        - ginkgolinter
-        - gocheckcompilerdirectives
-        - gochecknoglobals
-        - gochecknoinits
-        - gochecksumtype
-        - gocognit
-        - goconst
-        - gocritic
-        - gocyclo
-        - godoclint
-        - godot
-        - godox
-        - goheader
-        - gomoddirectives
-        - gomodguard_v2
-        - goprintffuncname
-        - gosec
-        - gosmopolitan
-        - grouper
-        - iface
-        - importas
-        - inamedparam
-        - interfacebloat
-        - intrange
-        - iotamixing
-        - ireturn
-        - loggercheck
-        - maintidx
-        - makezero
-        - mirror
-        - misspell
-        - mnd
-        - modernize
-        - musttag
-        - nakedret
-        - nestif
-        - nilerr
-        - nilnesserr
-        - nilnil
-        - nlreturn
-        - noctx
-        - nolintlint
-        - nonamedreturns
-        - nosprintfhostport
-        - paralleltest
-        - perfsprint
-        - prealloc
-        - predeclared
-        - promlinter
-        - protogetter
-        - reassign
-        - recvcheck
-        - revive
-        - rowserrcheck
-        - sloglint
-        - spancheck
-        - sqlclosecheck
-        - tagalign
-        - tagliatelle
-        - testableexamples
-        - testifylint
-        - testpackage
-        - thelper
-        - tparallel
-        - unconvert
-        - unparam
-        - unqueryvet
-        - usestdlibvars
-        - usetesting
-        - varnamelen
-        - wastedassign
-        - whitespace
-        - wrapcheck
-        - wsl_v5
-        - zerologlint
-    default: standard
-    settings:
-        cyclop:
-            max-complexity: 12
-        exhaustruct:
-            exclude:
-                - net/http.Client
-                - net/http.Server
-                - net/http.Request
-                - net/http.Response
-                - net/http.Transport
-                - net/http.Cookie
-                - net.TCPAddr
-                - net.Dialer
-                - log/slog.HandlerOptions
-                - sync.WaitGroup
-                - sync.Once
-                - bytes.Buffer
-                - time.Ticker
-                - time.Timer
-                - os/exec.Cmd
-        funlen:
-            lines: 200
-            statements: 100
-        ginkgolinter:
-            forbid-focus-container: true
-            forbid-spec-pollution: true
-        gocritic:
-            disabled-checks:
-                - ifElseChain
-        gomoddirectives:
-            replace-local: true
-        gosec:
-            excludes:
-                - G304
-                - G115
-        ireturn:
-            allow:
-                - error
-                - empty
-                - anon
-                - stdlib
-                - generic
-        makezero:
-            always: true
-        mnd:
-            ignored-numbers:
-                - "0"
-                - "1"
-                - "2"
-                - "100"
-        revive:
-            rules:
-                - disabled: true
-                  name: exported
-                - disabled: true
-                  name: package-comments
-        testifylint:
-            disable:
-                - go-require
-            enable-all: true
-        varnamelen:
-            ignore-map-index-ok: true
-            ignore-names:
-                - err
-                - ok
-                - tt
-                - fn
-                - t
-                - i
-                - m
-                - g
-                - a
-                - b
-                - v
-                - r
-                - f
-                - p
-                - tc
-            ignore-type-assert-ok: true
-        wrapcheck:
-            ignore-sigs:
-                - .Errorf(
-                - errors.New(
-                - errors.Unwrap(
-                - errors.Join(
-                - .Wrap(
-                - .Wrapf(
-                - .WithMessage(
-                - .WithMessagef(
-                - .WithStack(
-    exclusions:
-        generated: lax
-        rules:
-            - path: _test\.go
-              linters:
-                - mnd
-                - exhaustruct
-                - err113
-                - paralleltest
-                - gochecknoglobals
-                - goconst
-                - varnamelen
-                - wsl_v5
-            - path: _test\.go
-              text: unused
-              linters:
-                - unused
-        paths:
-            - \.gen\.go$
-            - _templ\.go$
-            - vendor/
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - contextcheck
+    - copyloopvar
+    - cyclop
+    - decorder
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - embeddedstructfieldcheck
+    - err113
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - exhaustruct
+    - exptostd
+    - fatcontext
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gochecksumtype
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godoclint
+    - godot
+    - godox
+    - goheader
+    - gomoddirectives
+    - gomodguard_v2
+    - goprintffuncname
+    - gosec
+    - gosmopolitan
+    - grouper
+    - iface
+    - importas
+    - inamedparam
+    - interfacebloat
+    - intrange
+    - iotamixing
+    - ireturn
+    - loggercheck
+    - maintidx
+    - makezero
+    - mirror
+    - misspell
+    - mnd
+    - modernize
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    - recvcheck
+    - revive
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - tagalign
+    - tagliatelle
+    - testableexamples
+    - testifylint
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unqueryvet
+    - usestdlibvars
+    - usetesting
+    - varnamelen
+    - wastedassign
+    - whitespace
+    - wrapcheck
+    - wsl_v5
+    - zerologlint
+  default: standard
+  settings:
+    cyclop:
+      max-complexity: 12
+    exhaustruct:
+      exclude:
+        - net/http.Client
+        - net/http.Server
+        - net/http.Request
+        - net/http.Response
+        - net/http.Transport
+        - net/http.Cookie
+        - net.TCPAddr
+        - net.Dialer
+        - log/slog.HandlerOptions
+        - sync.WaitGroup
+        - sync.Once
+        - bytes.Buffer
+        - time.Ticker
+        - time.Timer
+        - os/exec.Cmd
+    funlen:
+      lines: 200
+      statements: 100
+    ginkgolinter:
+      forbid-focus-container: true
+      forbid-spec-pollution: true
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+    gomoddirectives:
+      replace-local: true
+    gosec:
+      excludes:
+        - G304
+        - G115
+    ireturn:
+      allow:
+        - error
+        - empty
+        - anon
+        - stdlib
+        - generic
+    makezero:
+      always: true
+    mnd:
+      ignored-numbers:
+        - "0"
+        - "1"
+        - "2"
+        - "100"
+    revive:
+      rules:
+        - disabled: true
+          name: exported
+        - disabled: true
+          name: package-comments
+    testifylint:
+      disable:
+        - go-require
+      enable-all: true
+    varnamelen:
+      ignore-map-index-ok: true
+      ignore-names:
+        - err
+        - ok
+        - tt
+        - fn
+        - t
+        - i
+        - m
+        - g
+        - a
+        - b
+        - v
+        - r
+        - f
+        - p
+        - tc
+      ignore-type-assert-ok: true
+    wrapcheck:
+      ignore-sigs:
+        - .Errorf(
+        - errors.New(
+        - errors.Unwrap(
+        - errors.Join(
+        - .Wrap(
+        - .Wrapf(
+        - .WithMessage(
+        - .WithMessagef(
+        - .WithStack(
+  exclusions:
+    generated: lax
+    rules:
+      - path: _test\.go
+        linters:
+          - mnd
+          - exhaustruct
+          - err113
+          - paralleltest
+          - gochecknoglobals
+          - goconst
+          - varnamelen
+          - wsl_v5
+      - path: _test\.go
+        text: unused
+        linters:
+          - unused
+    paths:
+      - \.gen\.go$
+      - _templ\.go$
+      - vendor/
 formatters:
-    enable:
-        - gci
-        - goimports
-        - gofumpt
-        - golines
-    settings:
-        golines:
-            max-len: 120
-    exclusions:
-        generated: lax
-        paths:
-            - _templ\.go$
+  enable:
+    - gci
+    - goimports
+    - gofumpt
+    - golines
+  settings:
+    golines:
+      max-len: 120
+  exclusions:
+    generated: lax
+    paths:
+      - _templ\.go$
 issues:
-    max-issues-per-linter: 50
-    max-same-issues: 10
+  max-issues-per-linter: 50
+  max-same-issues: 10

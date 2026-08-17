@@ -70,6 +70,7 @@ Production imports: 100% stdlib (13 packages). No third-party dependencies. `go.
 ### 1. `captureCtx` struct is a naming smell + DRY violation
 
 I created an internal `captureCtx` struct (`recorder.go:229`) carrying `Source`, `Kind`, `Type` — the same three fields that exist on `SnapshotEvent`. This is a third type that carries the same data. I could have:
+
 - Passed `SnapshotEvent` directly through the internal chain (it already has these fields), OR
 - Embedded `TriggerContext` in the capture path
 
@@ -182,12 +183,14 @@ The prior session's report had a "self-review" section. I skipped that step enti
 Ranked by impact (Pareto):
 
 ### P0 — Correctness & honesty
+
 1. **Rename `cc` to `origin` and revert the `.golangci.yml` change** — Remove `cc` from varnamelen ignore-names, rename the parameter in all 6 call sites.
 2. **Fix the vacuous stress test assertion** — Change `MaxSnapshots(100)` to `MaxSnapshots(30)` so 50 goroutines actually exercises retention pruning.
 3. **Consider eliminating `captureCtx`** — Pass `SnapshotEvent` through the internal chain instead of a duplicate struct.
 4. **Document `SnapshotToWriter` Kind/Type gap** — Add a comment explaining why Kind/Type are empty for this escape hatch.
 
 ### P1 — Polish & docs
+
 5. **Update CONTRIBUTING.md** — 6-file architecture, async drain pattern, compression, nil-safety scope.
 6. **Add `//go:build go1.26` directive** — Clear error for old Go versions (flagged three times).
 7. **Migrate tests to `errors.AsType`** — 5 assertions use the old API.
@@ -201,6 +204,7 @@ Ranked by impact (Pareto):
 15. **Document retention scan behavior in README** (Start prunes, after-capture prunes).
 
 ### P2 — Hardening
+
 16. **Test retention with identical mod-times** — verify sorting tiebreaker.
 17. **Test `SnapshotToDir` into a read-only directory** — verify error path.
 18. **Test `WithMetrics(nil)`** — verify nil-guard works.
@@ -216,6 +220,7 @@ Ranked by impact (Pareto):
 28. **Verify compressed trace round-trip** — capture .trace.gz, gunzip, `go tool trace` accepts.
 
 ### P3 — Ecosystem (ROADMAP items now unblocked)
+
 29. **Prometheus metrics adapter** — separate package.
 30. **`log/slog` adapter.**
 31. **OpenTelemetry adapter.**
@@ -228,6 +233,7 @@ Ranked by impact (Pareto):
 38. **Streaming sink** — real-time trace over network.
 
 ### P4 — Future triggers
+
 39. **Memory pressure trigger.**
 40. **Goroutine count trigger.**
 41. **Custom predicate trigger.**
@@ -235,6 +241,7 @@ Ranked by impact (Pareto):
 43. **Structured logging of trigger evaluations.**
 
 ### P5 — Meta
+
 44. **Review all `//nolint:` directives** — verify each is still needed.
 45. **Consider a `flightrecorder/observe` sub-package** if observability types grow.
 46. **Stale gopls LSP diagnostics** — 5 phantom errors that don't exist in `go build`. Restart gopls.
@@ -263,19 +270,19 @@ Since `go tool trace` can't read `.trace.gz` directly, every consumer needs to `
 
 ## Session metrics
 
-| Metric | Value |
-|--------|-------|
-| Source files | 6 (unchanged from prior session) |
-| Production LOC | ~1,090 (+27 from captureCtx + Kind/Type fields) |
-| Test LOC | ~1,885 (+163 from 3 new tests) |
-| Test count | 64 (+3 from prior session's 61) |
-| Questions resolved | 3/3 (Q1: return false, Q2: add Kind/Type, Q3: keep SnapshotToWriter) |
-| P0 items completed | 5/5 |
-| Bugs found | 1 critical (`go tool trace` doesn't support gzip — feedback doc was wrong) |
-| Design smells introduced | 2 (`cc` abbreviation + `.golangci.yml` change, vacuous test assertion) |
-| Lint issues | 0 |
-| External dependencies | 0 (preserved) |
-| `//go:build go1.26` directives | 0 (still missing) |
+| Metric                         | Value                                                                      |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| Source files                   | 6 (unchanged from prior session)                                           |
+| Production LOC                 | ~1,090 (+27 from captureCtx + Kind/Type fields)                            |
+| Test LOC                       | ~1,885 (+163 from 3 new tests)                                             |
+| Test count                     | 64 (+3 from prior session's 61)                                            |
+| Questions resolved             | 3/3 (Q1: return false, Q2: add Kind/Type, Q3: keep SnapshotToWriter)       |
+| P0 items completed             | 5/5                                                                        |
+| Bugs found                     | 1 critical (`go tool trace` doesn't support gzip — feedback doc was wrong) |
+| Design smells introduced       | 2 (`cc` abbreviation + `.golangci.yml` change, vacuous test assertion)     |
+| Lint issues                    | 0                                                                          |
+| External dependencies          | 0 (preserved)                                                              |
+| `//go:build go1.26` directives | 0 (still missing)                                                          |
 
 ---
 

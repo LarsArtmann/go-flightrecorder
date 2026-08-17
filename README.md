@@ -97,14 +97,14 @@ trigger := flightrecorder.OnAll(
 
 ### Built-in triggers
 
-| Trigger | Fires when |
-|---------|-----------|
-| `OnLatency(threshold)` | Duration exceeds threshold |
-| `OnError()` | Operation returned a non-nil error |
-| `OnErrorOrLatency(threshold)` | Either of the above |
-| `OnAlways()` | Every call (testing/baseline) |
-| `OnAny(triggers...)` | Any trigger fires (OR) |
-| `OnAll(triggers...)` | All triggers fire (AND) |
+| Trigger                       | Fires when                         |
+| ----------------------------- | ---------------------------------- |
+| `OnLatency(threshold)`        | Duration exceeds threshold         |
+| `OnError()`                   | Operation returned a non-nil error |
+| `OnErrorOrLatency(threshold)` | Either of the above                |
+| `OnAlways()`                  | Every call (testing/baseline)      |
+| `OnAny(triggers...)`          | Any trigger fires (OR)             |
+| `OnAll(triggers...)`          | All triggers fire (AND)            |
 
 ## Process-global constraint
 
@@ -114,18 +114,18 @@ Design your application around a single recorder, created at startup and shared 
 
 ## Configuration
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `WithMinAge(d)` | 10s | Minimum age of reliably retained trace data. Set to ~2x your debugging window. |
-| `WithMaxBytes(n)` | 10 MiB | Maximum in-memory trace buffer size. ~10 MB/s for a busy service. |
-| `WithWriter(w)` | `io.Discard` | Destination for `Snapshot()` writes. |
-| `WithFile(path)` | (none) | Lazy-opened file for snapshot output. File is created on first snapshot. |
-| `WithCompression(level)` | 0 (off) | Gzip compression level (1-9, -1=default, -2=huffman-only). Decompress with `gunzip` before `go tool trace`. |
-| `WithSnapshotDir(dir)` | (none) | Directory for auto-named, retained snapshots. Enables `SnapshotToDir`. |
-| `WithSnapshotPrefix(p)` | `snapshot-` | Filename prefix for `SnapshotToDir` files. |
-| `WithMaxSnapshots(n)` | 0 (unlimited) | Retention limit; prunes oldest snapshots in the directory. |
-| `WithMetrics(hook)` | no-op | Callback invoked after every capture with a `SnapshotEvent`. |
-| `WithLogger(hook)` | no-op | Callback for lifecycle diagnostics (start, stop, cleanup). |
+| Option                   | Default       | Description                                                                                                 |
+| ------------------------ | ------------- | ----------------------------------------------------------------------------------------------------------- |
+| `WithMinAge(d)`          | 10s           | Minimum age of reliably retained trace data. Set to ~2x your debugging window.                              |
+| `WithMaxBytes(n)`        | 10 MiB        | Maximum in-memory trace buffer size. ~10 MB/s for a busy service.                                           |
+| `WithWriter(w)`          | `io.Discard`  | Destination for `Snapshot()` writes.                                                                        |
+| `WithFile(path)`         | (none)        | Lazy-opened file for snapshot output. File is created on first snapshot.                                    |
+| `WithCompression(level)` | 0 (off)       | Gzip compression level (1-9, -1=default, -2=huffman-only). Decompress with `gunzip` before `go tool trace`. |
+| `WithSnapshotDir(dir)`   | (none)        | Directory for auto-named, retained snapshots. Enables `SnapshotToDir`.                                      |
+| `WithSnapshotPrefix(p)`  | `snapshot-`   | Filename prefix for `SnapshotToDir` files.                                                                  |
+| `WithMaxSnapshots(n)`    | 0 (unlimited) | Retention limit; prunes oldest snapshots in the directory.                                                  |
+| `WithMetrics(hook)`      | no-op         | Callback invoked after every capture with a `SnapshotEvent`.                                                |
+| `WithLogger(hook)`       | no-op         | Callback for lifecycle diagnostics (start, stop, cleanup).                                                  |
 
 ## Snapshot-to-directory with retention
 

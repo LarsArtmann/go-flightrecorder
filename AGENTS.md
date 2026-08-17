@@ -22,14 +22,14 @@ Requires Go 1.26+ (`go.mod` pins `go 1.26.5`).
 
 Six source files, one package:
 
-| File | Responsibility |
-|------|----------------|
-| `doc.go` | Package documentation only (no code) |
-| `options.go` | Functional options (`With*`), `recorderConfig` validation, `lazyFile` type |
-| `observe.go` | Observability types (`SnapshotEvent`, `MetricsHook`, `LoggerHook`), source constants, `countingWriter` |
-| `retention.go` | Directory snapshot retention: `cleanupSnapshots` prunes oldest files |
-| `recorder.go` | Core `Recorder` type: lifecycle (`Start`/`Stop`/`Close`), snapshots (`Snapshot`/`SnapshotToFile`/`SnapshotToDir`/`SnapshotIf`/`SnapshotIfAsync`), `Reset`, compression + metrics instrumentation |
-| `trigger.go` | `TriggerFunc` type, `TriggerContext` struct, composable trigger constructors (`OnLatency`, `OnError`, `OnErrorOrLatency`, `OnAlways`, `OnAny`, `OnAll`) |
+| File           | Responsibility                                                                                                                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `doc.go`       | Package documentation only (no code)                                                                                                                                                             |
+| `options.go`   | Functional options (`With*`), `recorderConfig` validation, `lazyFile` type                                                                                                                       |
+| `observe.go`   | Observability types (`SnapshotEvent`, `MetricsHook`, `LoggerHook`), source constants, `countingWriter`                                                                                           |
+| `retention.go` | Directory snapshot retention: `cleanupSnapshots` prunes oldest files                                                                                                                             |
+| `recorder.go`  | Core `Recorder` type: lifecycle (`Start`/`Stop`/`Close`), snapshots (`Snapshot`/`SnapshotToFile`/`SnapshotToDir`/`SnapshotIf`/`SnapshotIfAsync`), `Reset`, compression + metrics instrumentation |
+| `trigger.go`   | `TriggerFunc` type, `TriggerContext` struct, composable trigger constructors (`OnLatency`, `OnError`, `OnErrorOrLatency`, `OnAlways`, `OnAny`, `OnAll`)                                          |
 
 **Data flow**: `New(opts)` builds a config-validated `Recorder` wrapping `trace.NewFlightRecorder`. `Start()` begins in-memory buffering (and prunes stale snapshots if retention is configured). On a problem, snapshots write the buffered window to the configured sink — writer (`Snapshot`), fixed file (`SnapshotToFile`), or auto-named directory file (`SnapshotToDir`). `SnapshotIfAsync` does the same in a background goroutine. The metrics hook fires after each capture attempt; the logger hook fires on lifecycle events. The trace is then analyzed offline with `go tool trace`.
 
@@ -101,11 +101,11 @@ When `stopped == true`, `SnapshotIfAsync` returns `false` — no capture is init
 
 The codebase uses nolint directives with justifying comments:
 
-| Directive | Used for |
-|-----------|----------|
-| `//nolint:exhaustruct` | Intentional zero-value struct fields (mutex, once, lazy file handle) |
-| `//nolint:wrapcheck` | Direct delegation (`lf.f.Write`) and standard context error propagation (`ctx.Err()`) |
-| `//art-dupl:accept` | Accepted duplication (same-file mutex guard idiom) |
+| Directive              | Used for                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| `//nolint:exhaustruct` | Intentional zero-value struct fields (mutex, once, lazy file handle)                  |
+| `//nolint:wrapcheck`   | Direct delegation (`lf.f.Write`) and standard context error propagation (`ctx.Err()`) |
+| `//art-dupl:accept`    | Accepted duplication (same-file mutex guard idiom)                                    |
 
 ### Functional options
 

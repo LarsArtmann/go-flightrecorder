@@ -18,18 +18,18 @@ This document catalogs every feature the daemon had to build by hand, explains w
 
 ## Gap Analysis: What the Daemon Has That the Library Lacks
 
-| # | Feature | Library | Daemon (in-tree) | Complexity |
-|---|---------|---------|-------------------|------------|
-| 1 | Gzip compression | ❌ | ✅ `CompressSnapshots`, `.trace.gz` | Low — stdlib `compress/gzip` |
-| 2 | Snapshot retention | ❌ | ✅ `MaxSnapshots` + `cleanupOldSnapshots()` | Low — stdlib `os.ReadDir`/`os.Remove` |
-| 3 | Metrics hooks | ❌ | ✅ Prometheus counters/histograms | Medium — needs interface, not dep |
-| 4 | Non-blocking capture | ❌ | ✅ `sync.WaitGroup` + goroutine | Low — stdlib |
-| 5 | Auto-timestamped filenames | ❌ | ✅ `snapshot-<nanos>.trace` | Trivial |
-| 6 | Snapshot-to-directory | ❌ | ✅ `SnapshotToFile() → dir` | Low |
-| 7 | Nil-safe receivers | ❌ | ✅ `Stop()`/`Enabled()` on nil | Trivial |
-| 8 | Graceful drain on stop | ❌ | ✅ `wg.Wait()` before `Stop()` | Low |
-| 9 | Diagnostic logging | ❌ | ✅ `slog` structured events | Medium — needs interface |
-| 10 | SnapshotIf with triggers | ✅ | ❌ (hardcoded threshold) | Library wins |
+| #  | Feature                    | Library | Daemon (in-tree)                            | Complexity                            |
+| -- | -------------------------- | ------- | ------------------------------------------- | ------------------------------------- |
+| 1  | Gzip compression           | ❌      | ✅ `CompressSnapshots`, `.trace.gz`         | Low — stdlib `compress/gzip`          |
+| 2  | Snapshot retention         | ❌      | ✅ `MaxSnapshots` + `cleanupOldSnapshots()` | Low — stdlib `os.ReadDir`/`os.Remove` |
+| 3  | Metrics hooks              | ❌      | ✅ Prometheus counters/histograms           | Medium — needs interface, not dep     |
+| 4  | Non-blocking capture       | ❌      | ✅ `sync.WaitGroup` + goroutine             | Low — stdlib                          |
+| 5  | Auto-timestamped filenames | ❌      | ✅ `snapshot-<nanos>.trace`                 | Trivial                               |
+| 6  | Snapshot-to-directory      | ❌      | ✅ `SnapshotToFile() → dir`                 | Low                                   |
+| 7  | Nil-safe receivers         | ❌      | ✅ `Stop()`/`Enabled()` on nil              | Trivial                               |
+| 8  | Graceful drain on stop     | ❌      | ✅ `wg.Wait()` before `Stop()`              | Low                                   |
+| 9  | Diagnostic logging         | ❌      | ✅ `slog` structured events                 | Medium — needs interface              |
+| 10 | SnapshotIf with triggers   | ✅      | ❌ (hardcoded threshold)                    | Library wins                          |
 
 The library already wins on triggers, typed errors, once-semantics, and zero dependencies. The daemon wins on everything operational. They are complementary halves of the same product.
 
@@ -286,6 +286,7 @@ func newFlightRecorder(opts FlightRecorderOptions, reg *prometheus.Registry) (*f
 ```
 
 The daemon keeps only:
+
 - `FlightRecorderOptions` (its own config type, mapped to library options)
 - `SlowRequestThreshold` handling (mapped to `OnLatency` trigger + `SnapshotIfAsync`)
 - Prometheus metric wiring (via the `MetricsHook` adapter)
@@ -316,15 +317,15 @@ Everything else — lifecycle, compression, retention, timestamps, async capture
 
 ## Prioritization (Pareto)
 
-| Priority | Theme | Impact | Effort |
-|----------|-------|--------|--------|
-| P0 | Theme 3: SnapshotToDir + auto-timestamp | Every consumer needs this | ~30 min |
-| P0 | Theme 1: Compression | 10x storage savings | ~20 min |
-| P0 | Theme 4: Non-blocking capture + drain | Middleware-critical | ~40 min |
-| P1 | Theme 2: Retention | Disk safety for auto-trigger | ~30 min |
-| P1 | Theme 5: Observability hooks | Metrics without deps | ~45 min |
-| P2 | Theme 6: Nil-safe receivers | Defensive convenience | ~10 min |
-| P2 | Theme 7: SnapshotPrefix | Multi-instance coexistence | ~5 min |
+| Priority | Theme                                   | Impact                       | Effort  |
+| -------- | --------------------------------------- | ---------------------------- | ------- |
+| P0       | Theme 3: SnapshotToDir + auto-timestamp | Every consumer needs this    | ~30 min |
+| P0       | Theme 1: Compression                    | 10x storage savings          | ~20 min |
+| P0       | Theme 4: Non-blocking capture + drain   | Middleware-critical          | ~40 min |
+| P1       | Theme 2: Retention                      | Disk safety for auto-trigger | ~30 min |
+| P1       | Theme 5: Observability hooks            | Metrics without deps         | ~45 min |
+| P2       | Theme 6: Nil-safe receivers             | Defensive convenience        | ~10 min |
+| P2       | Theme 7: SnapshotPrefix                 | Multi-instance coexistence   | ~5 min  |
 
 Total estimated effort: ~3 hours for all seven themes.
 

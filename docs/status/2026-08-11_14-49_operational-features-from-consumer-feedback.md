@@ -10,16 +10,16 @@
 
 ### Core implementation — all 7 themes + 1 bonus
 
-| # | Theme | Files | Status |
-|---|-------|-------|--------|
-| 1 | Gzip compression (`WithCompression`, `.trace.gz`) | `recorder.go`, `options.go` | ✅ Tested (valid gzip verified by decompression) |
-| 2 | Retention (`WithMaxSnapshots`, prune oldest) | `retention.go` | ✅ Tested (limits to N, unlimited at 0, rejects negative) |
-| 3 | Snapshot-to-directory (`SnapshotToDir`, auto-timestamped, not once-latched) | `recorder.go` | ✅ Tested (distinct files, missing dir created, no-dir → ConfigError) |
-| 4 | Non-blocking capture (`SnapshotIfAsync` + WaitGroup drain) | `recorder.go` | ✅ Tested (fires, drains on Stop AND Close, routes to writer OR dir) |
-| 5 | Observability hooks (`WithMetrics`/`WithLogger`, `SnapshotEvent`) | `observe.go` | ✅ Tested (event fields, source labels, lifecycle logs, no-op default) |
-| 6 | Nil-safe lifecycle (`Enabled`/`Stop`/`Close`) | `recorder.go` | ✅ Tested (all three on nil receiver) |
-| 7 | Filename prefix (`WithSnapshotPrefix`) | `options.go` | ✅ Tested (custom prefix in filename) |
-| 8 | `SnapshotToWriter` escape hatch (concurrent addition, reviewed + kept) | `recorder.go` | ✅ Tested (writes bytes, not once-latched) |
+| # | Theme                                                                       | Files                       | Status                                                                 |
+| - | --------------------------------------------------------------------------- | --------------------------- | ---------------------------------------------------------------------- |
+| 1 | Gzip compression (`WithCompression`, `.trace.gz`)                           | `recorder.go`, `options.go` | ✅ Tested (valid gzip verified by decompression)                       |
+| 2 | Retention (`WithMaxSnapshots`, prune oldest)                                | `retention.go`              | ✅ Tested (limits to N, unlimited at 0, rejects negative)              |
+| 3 | Snapshot-to-directory (`SnapshotToDir`, auto-timestamped, not once-latched) | `recorder.go`               | ✅ Tested (distinct files, missing dir created, no-dir → ConfigError)  |
+| 4 | Non-blocking capture (`SnapshotIfAsync` + WaitGroup drain)                  | `recorder.go`               | ✅ Tested (fires, drains on Stop AND Close, routes to writer OR dir)   |
+| 5 | Observability hooks (`WithMetrics`/`WithLogger`, `SnapshotEvent`)           | `observe.go`                | ✅ Tested (event fields, source labels, lifecycle logs, no-op default) |
+| 6 | Nil-safe lifecycle (`Enabled`/`Stop`/`Close`)                               | `recorder.go`               | ✅ Tested (all three on nil receiver)                                  |
+| 7 | Filename prefix (`WithSnapshotPrefix`)                                      | `options.go`                | ✅ Tested (custom prefix in filename)                                  |
+| 8 | `SnapshotToWriter` escape hatch (concurrent addition, reviewed + kept)      | `recorder.go`               | ✅ Tested (writes bytes, not once-latched)                             |
 
 ### Verification gates — all green
 
@@ -56,7 +56,7 @@ Production imports are 100% stdlib: `compress/gzip`, `context`, `errors`, `fmt`,
 
 ### 1. `doc.go` quick start is stale
 
-The **Quick start** section at the top of `doc.go` still shows only the old API (`WithWriter` + `Snapshot`). The new capabilities (directory, compression, async, hooks) are documented in sections *below* the quick start, but a reader scanning the top sees the pre-v0.2 API only. The quick start should showcase the richest common path (directory + compression + retention).
+The **Quick start** section at the top of `doc.go` still shows only the old API (`WithWriter` + `Snapshot`). The new capabilities (directory, compression, async, hooks) are documented in sections _below_ the quick start, but a reader scanning the top sees the pre-v0.2 API only. The quick start should showcase the richest common path (directory + compression + retention).
 
 ### 2. `SnapshotEvent` lacks trigger context
 
@@ -76,11 +76,11 @@ The v0.1.1 status report (item 11) explicitly flagged this: "Production code use
 
 ### Forgot entirely
 
-1. **`go tool trace` acceptance test** — Theme 1 acceptance criteria: "A `.trace.gz` file produced by the library is loadable by `go tool trace`." I verified the output is *valid gzip* and *decompresses to non-empty data*, but I never ran `go tool trace` on a captured file. This is a proxy, not the real acceptance check. `go tool trace` validates the trace *format*, not just gzip validity. A malformed trace that happens to be valid gzip would pass my test and fail in production.
+1. **`go tool trace` acceptance test** — Theme 1 acceptance criteria: "A `.trace.gz` file produced by the library is loadable by `go tool trace`." I verified the output is _valid gzip_ and _decompresses to non-empty data_, but I never ran `go tool trace` on a captured file. This is a proxy, not the real acceptance check. `go tool trace` validates the trace _format_, not just gzip validity. A malformed trace that happens to be valid gzip would pass my test and fail in production.
 
 2. **`CONTRIBUTING.md` not updated** — It still describes the 4-file architecture and the old option set. New contributors won't know about `observe.go`, `retention.go`, or the new patterns (async drain, nil-safety scope).
 
-3. **No `Example` test functions** — The `testableexamples` linter is enabled and passes (it doesn't *require* examples), but the package has zero `ExampleRecorder_*` functions. Runnable examples in `go doc` would showcase the new API far better than prose.
+3. **No `Example` test functions** — The `testableexamples` linter is enabled and passes (it doesn't _require_ examples), but the package has zero `ExampleRecorder_*` functions. Runnable examples in `go doc` would showcase the new API far better than prose.
 
 4. **No benchmark** — Compression adds CPU overhead on every snapshot. I have no benchmark measuring the cost of `gzip.BestSpeed` vs `gzip.BestCompression` vs uncompressed on a typical trace write. A consumer choosing a level is flying blind.
 
@@ -170,6 +170,7 @@ The gopls LSP reports 5 phantom compiler errors in `recorder.go` (`undefined: fi
 Ranked by impact (Pareto):
 
 ### P0 — Correctness & acceptance
+
 1. **Fix `SnapshotIfAsync` lying return** — Document or return `false` when `stopped`. This is the only active "lie" in the API.
 2. **Run `go tool trace` acceptance test** on a `.trace.gz` file — verify Theme 1 acceptance criteria for real.
 3. **Add `Kind`/`Type` to `SnapshotEvent`** — thread trigger context through to the metrics hook.
@@ -177,6 +178,7 @@ Ranked by impact (Pareto):
 5. **Add concurrent async stress test** — 50 goroutines + Stop drain.
 
 ### P1 — Polish & docs
+
 6. **Rewrite `doc.go` quick start** to showcase dir + compression + retention.
 7. **Update `CONTRIBUTING.md`** with 6-file architecture and new patterns.
 8. **Migrate new tests to `errors.AsType`** — consistency with production code.
@@ -189,6 +191,7 @@ Ranked by impact (Pareto):
 15. **Bump version to v0.2.0** — this is a significant feature release (new options, new types, new methods). CHANGELOG `[Unreleased]` is ready.
 
 ### P2 — Hardening
+
 16. **Test retention with identical mod-times** — verify sorting tiebreaker is stable.
 17. **Test `SnapshotToDir` into a read-only directory** — verify the `MkdirAll` / `os.Create` error path.
 18. **Test `WithMetrics(nil)`** — verify the nil-guard in the option function works (doesn't panic).
@@ -206,6 +209,7 @@ Ranked by impact (Pareto):
 30. **Test `WithSnapshotPrefix("")`** — empty prefix edge case.
 
 ### P3 — Ecosystem (ROADMAP items now unblocked)
+
 31. **Prometheus metrics adapter** — separate package, wires `MetricsHook` to `prometheus.CounterVec`/`Histogram`.
 32. **`log/slog` adapter** — wires `LoggerHook` to `slog.Logger`.
 33. **OpenTelemetry adapter** — wires `MetricsHook` to span events.
@@ -218,6 +222,7 @@ Ranked by impact (Pareto):
 40. **Streaming sink** — real-time trace over network.
 
 ### P4 — Future triggers
+
 41. **Memory pressure trigger** — `runtime.MemStats` threshold.
 42. **Goroutine count trigger** — leak detection.
 43. **Custom predicate trigger** — user function with arbitrary runtime state.
@@ -225,6 +230,7 @@ Ranked by impact (Pareto):
 45. **Structured logging of trigger evaluations** — which trigger fired and why (via LoggerHook).
 
 ### P5 — Meta
+
 46. **Add `//go:build go1.26` to all files** — or a single `tools.go` gate.
 47. **Add `go tool trace` integration to Makefile/flake** — if one existed (it doesn't; AGENTS.md says no Makefile).
 48. **Consider a `flightrecorder/observe` sub-package** — if the observability types grow, they could be split out.
@@ -238,6 +244,7 @@ Ranked by impact (Pareto):
 ### Q1: Should `SnapshotIfAsync` return `true` or `false` when the recorder is stopping?
 
 When `stopped == true` and the trigger fires, the method currently returns `true` but silently drops the capture. I see two options:
+
 - **Return `true`** (current): caller thinks capture is in flight. Lie, but doesn't block.
 - **Return `false`**: caller thinks trigger didn't fire. Also misleading, but a false negative is safer than a false positive in a debugging tool.
 
@@ -255,18 +262,18 @@ I did not author it — it appeared during the session (likely an auto-commit da
 
 ## Session metrics
 
-| Metric | Value |
-|--------|-------|
-| Source files | 4 → 6 (`observe.go`, `retention.go` added) |
-| Production LOC | ~470 → ~1,063 (+593) |
-| Test LOC | ~942 → ~1,722 (+780) |
-| Test count | 27 → 61 (+34) |
-| Public options | 4 → 10 (+6) |
+| Metric                     | Value                                                               |
+| -------------------------- | ------------------------------------------------------------------- |
+| Source files               | 4 → 6 (`observe.go`, `retention.go` added)                          |
+| Production LOC             | ~470 → ~1,063 (+593)                                                |
+| Test LOC                   | ~942 → ~1,722 (+780)                                                |
+| Test count                 | 27 → 61 (+34)                                                       |
+| Public options             | 4 → 10 (+6)                                                         |
 | Public methods on Recorder | 7 → 10 (+3: `SnapshotToDir`, `SnapshotIfAsync`, `SnapshotToWriter`) |
-| Public types | 3 → 6 (+3: `SnapshotEvent`, `MetricsHook`, `LoggerHook`) |
-| Bugs found & fixed | 2 (deadlock, restart regression) |
-| Lint issues | 0 |
-| External dependencies | 0 (preserved) |
+| Public types               | 3 → 6 (+3: `SnapshotEvent`, `MetricsHook`, `LoggerHook`)            |
+| Bugs found & fixed         | 2 (deadlock, restart regression)                                    |
+| Lint issues                | 0                                                                   |
+| External dependencies      | 0 (preserved)                                                       |
 
 ---
 

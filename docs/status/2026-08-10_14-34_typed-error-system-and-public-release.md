@@ -20,39 +20,39 @@ The repo is **live on GitHub** at [LarsArtmann/go-flightrecorder](https://github
 
 ### Public Release
 
-| Item | Evidence |
-|------|----------|
-| GitHub repo created | `https://github.com/LarsArtmann/go-flightrecorder` — public, MIT |
-| `v0.1.0` tagged and pushed | `git tag` shows `v0.1.0`; GitHub release created with full notes |
-| 11 topics set | go, golang, tracing, flight-recorder, runtime-trace, observability, profiling, diagnostics, performance, go-library, developer-tools |
-| Homepage set | `https://pkg.go.dev/github.com/larsartorder` |
-| CI passing | All runs green (test+race, vet, lint) |
-| MIT license | `LICENSE` switched from proprietary; README updated |
-| README badges | pkg.go.dev reference, CI status, MIT license badge |
+| Item                       | Evidence                                                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| GitHub repo created        | `https://github.com/LarsArtmann/go-flightrecorder` — public, MIT                                                                     |
+| `v0.1.0` tagged and pushed | `git tag` shows `v0.1.0`; GitHub release created with full notes                                                                     |
+| 11 topics set              | go, golang, tracing, flight-recorder, runtime-trace, observability, profiling, diagnostics, performance, go-library, developer-tools |
+| Homepage set               | `https://pkg.go.dev/github.com/larsartorder`                                                                                         |
+| CI passing                 | All runs green (test+race, vet, lint)                                                                                                |
+| MIT license                | `LICENSE` switched from proprietary; README updated                                                                                  |
+| README badges              | pkg.go.dev reference, CI status, MIT license badge                                                                                   |
 
 ### Typed Error System
 
-| Item | Evidence |
-|------|----------|
-| `errors.go` created (115 lines) | 3 typed errors: `ConfigError`, `AlreadyEnabledError`, `SnapshotError` |
-| String comparison eliminated | `recorder.go:62` — was `err.Error() == "flight recorder already enabled"`, now `&AlreadyEnabledError{Cause: err}` |
-| Close errors handled | `recorder.go:97` (Close), `recorder.go:233` (captureToFile) — named return captures deferred close errors |
-| Double-wrap prevention | `recorder.go:208` — `errors.AsType[*SnapshotError]` pass-through for lazyFile errors |
-| Go 1.26 `errors.AsType` | Used instead of `errors.As` for type-safe generic unwrapping |
-| `ErrAlreadyEnabled` sentinel preserved | `AlreadyEnabledError.Is()` method maintains `errors.Is` backward compat |
-| 5 new tests for typed errors | `TestConfigError_TypedMatching`, `TestConfigError_MaxBytesZero`, `TestAlreadyEnabledError_TypedMatching`, `TestSnapshotError_WriteFailure`, `TestSnapshotError_FileCreationFailure` |
-| doc.go error section | Full error handling guide with `errors.As` and `errors.Is` examples |
-| erraudit: 16 -> 1 violations | Remaining 1 is intentional sentinel `errors.New` |
-| 33 tests pass with `-race` | 87.8% statement coverage |
-| golangci-lint: 0 issues | All 90+ linters clean |
+| Item                                   | Evidence                                                                                                                                                                            |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `errors.go` created (115 lines)        | 3 typed errors: `ConfigError`, `AlreadyEnabledError`, `SnapshotError`                                                                                                               |
+| String comparison eliminated           | `recorder.go:62` — was `err.Error() == "flight recorder already enabled"`, now `&AlreadyEnabledError{Cause: err}`                                                                   |
+| Close errors handled                   | `recorder.go:97` (Close), `recorder.go:233` (captureToFile) — named return captures deferred close errors                                                                           |
+| Double-wrap prevention                 | `recorder.go:208` — `errors.AsType[*SnapshotError]` pass-through for lazyFile errors                                                                                                |
+| Go 1.26 `errors.AsType`                | Used instead of `errors.As` for type-safe generic unwrapping                                                                                                                        |
+| `ErrAlreadyEnabled` sentinel preserved | `AlreadyEnabledError.Is()` method maintains `errors.Is` backward compat                                                                                                             |
+| 5 new tests for typed errors           | `TestConfigError_TypedMatching`, `TestConfigError_MaxBytesZero`, `TestAlreadyEnabledError_TypedMatching`, `TestSnapshotError_WriteFailure`, `TestSnapshotError_FileCreationFailure` |
+| doc.go error section                   | Full error handling guide with `errors.As` and `errors.Is` examples                                                                                                                 |
+| erraudit: 16 -> 1 violations           | Remaining 1 is intentional sentinel `errors.New`                                                                                                                                    |
+| 33 tests pass with `-race`             | 87.8% statement coverage                                                                                                                                                            |
+| golangci-lint: 0 issues                | All 90+ linters clean                                                                                                                                                               |
 
 ### Commits This Session
 
-| SHA | Message |
-|-----|---------|
-| `4a2a8a9` | Switch to MIT license for public release |
-| `9349c94` | Remove Go Report Card badge (service shut down) |
-| `20eda75` | Remove "zero dependencies" advertising |
+| SHA       | Message                                                         |
+| --------- | --------------------------------------------------------------- |
+| `4a2a8a9` | Switch to MIT license for public release                        |
+| `9349c94` | Remove Go Report Card badge (service shut down)                 |
+| `20eda75` | Remove "zero dependencies" advertising                          |
 | `30029ad` | Add typed error system with errors.As and errors.AsType support |
 
 ---
@@ -69,10 +69,10 @@ The repo is **live on GitHub** at [LarsArtmann/go-flightrecorder](https://github
 
 ## c) NOT STARTED
 
-| Item | Why |
-|------|-----|
-| `SECURITY.md` | Needs GitHub repo (now exists), not created yet |
-| pkg.go.dev verification | Cannot control when Go proxy indexes the module; no action taken |
+| Item                    | Why                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| `SECURITY.md`           | Needs GitHub repo (now exists), not created yet                                        |
+| pkg.go.dev verification | Cannot control when Go proxy indexes the module; no action taken                       |
 | go-cqrs-lite shim fixes | Separate repo; shim has wrong `WithWriter` signature, no tests. User hasn't confirmed. |
 
 ---
