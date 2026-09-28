@@ -193,10 +193,8 @@ Official adapters build on this library and live in the
 [go-appkit](https://github.com/LarsArtmann/go-appkit) module family. All
 integration wiring stays out of this library, keeping it stdlib-only:
 
-| Module                                                                                                    | What it adds                                                                                                    |
-| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| [`go-appkit/flightrecorder`](https://pkg.go.dev/github.com/larsartmann/go-appkit/flightrecorder)           | HTTP middleware that builds `TriggerContext` from requests and captures on errors or latency spikes, plus a manual snapshot endpoint. |
-| [`go-appkit/flightrecorderhealth`](https://pkg.go.dev/github.com/larsartmann/go-appkit/flightrecorderhealth) | [go-health](https://pkg.go.dev/github.com/larsartmann/go-health) bridge: recorder state in the health dashboard and automatic trace capture when a health check fails. |
+- **[`go-appkit/flightrecorder`](https://pkg.go.dev/github.com/larsartmann/go-appkit/flightrecorder)** — HTTP middleware that builds `TriggerContext` from requests and captures on errors or latency spikes, plus a manual snapshot endpoint.
+- **[`go-appkit/flightrecorderhealth`](https://pkg.go.dev/github.com/larsartmann/go-appkit/flightrecorderhealth)** — [go-health](https://pkg.go.dev/github.com/larsartmann/go-health) bridge: recorder state in the health dashboard and automatic trace capture when a health check fails.
 
 ## License
 
