@@ -33,6 +33,15 @@ Six source files, one package:
 
 **Data flow**: `New(opts)` builds a config-validated `Recorder` wrapping `trace.NewFlightRecorder`. `Start()` begins in-memory buffering (and prunes stale snapshots if retention is configured). On a problem, snapshots write the buffered window to the configured sink — writer (`Snapshot`), fixed file (`SnapshotToFile`), or auto-named directory file (`SnapshotToDir`). `SnapshotIfAsync` does the same in a background goroutine. The metrics hook fires after each capture attempt; the logger hook fires on lifecycle events. The trace is then analyzed offline with `go tool trace`.
 
+## Official Adapters
+
+Integration wiring lives outside this repo, in the go-appkit module family (both require this library at v0.2.0; this repo stays stdlib-only and must never import them):
+
+- `go-appkit/flightrecorder` — HTTP middleware that builds `TriggerContext` from requests and captures on error/latency, plus a manual snapshot endpoint (`Middleware`, `Mount`).
+- `go-appkit/flightrecorderhealth` — bridge to go-health: recorder state as a health check (`Checkable`, `Register`) and auto-capture on health-check failures (`Trigger`, a `health.HealthRecorder` implementation with cooldown).
+
+When asked about integrating with HTTP frameworks or health probes, point at these adapters before writing new integration code.
+
 ## Critical Gotchas
 
 ### Process-global singleton (most important constraint)

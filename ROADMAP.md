@@ -9,10 +9,16 @@
 
 Pre-built adapters so users get flight recording with minimal wiring.
 
+**Status:** Two official adapters ship in the go-appkit module family —
+[`flightrecorder`](https://pkg.go.dev/github.com/larsartmann/go-appkit/flightrecorder)
+(HTTP middleware + manual snapshot endpoint) and
+[`flightrecorderhealth`](https://pkg.go.dev/github.com/larsartmann/go-appkit/flightrecorderhealth)
+(bridge to go-health: dashboard visibility + auto-capture on health-check
+failures). This library stays stdlib-only; all integration wiring lives in
+the adapters.
+
 Raw ideas:
 
-- HTTP middleware adapter for `net/http` that constructs `TriggerContext` from
-  request method, path, status code, and duration automatically
 - Framework-specific wrappers (chi, echo, gin) that follow each framework's
   middleware conventions
 - gRPC interceptor that populates `TriggerContext.Kind` and `Type` from RPC
