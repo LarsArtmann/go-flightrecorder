@@ -35,7 +35,7 @@ linters:
     - errname
     - errorlint
     - exhaustive
-    - exhaustruct
+    - exhaustruct_v5
     - exptostd
     - fatcontext
     - forbidigo
@@ -120,8 +120,8 @@ linters:
   settings:
     cyclop:
       max-complexity: 12
-    exhaustruct:
-      exclude:
+    exhaustruct_v5:
+      ignore-patterns:
         - net/http.Client
         - net/http.Server
         - net/http.Request
@@ -252,6 +252,7 @@ linters:
           - recvcheck
           - contextcheck
           - exhaustive
+          - exhaustruct_v5
       - path: _test\.go
         text: unused
         linters:
