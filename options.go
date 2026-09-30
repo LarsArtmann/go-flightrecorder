@@ -28,7 +28,7 @@ const (
 )
 
 func defaultConfig() recorderConfig {
-	return recorderConfig{ //nolint:exhaustruct // retention/dir/compression/hooks use zero-value defaults
+	return recorderConfig{ //nolint:exhaustruct_v5 // retention/dir/compression/hooks use zero-value defaults
 		minAge:         defaultMinAge,
 		maxBytes:       defaultMaxBytes,
 		writer:         io.Discard,
@@ -108,7 +108,7 @@ func WithWriter(w io.Writer) Option {
 // For streaming to an existing io.Writer, use [WithWriter] instead.
 func WithFile(path string) Option {
 	return func(c *recorderConfig) {
-		c.writer = &lazyFile{path: path} //nolint:exhaustruct // f is lazily opened
+		c.writer = &lazyFile{path: path} //nolint:exhaustruct_v5 // f is lazily opened
 	}
 }
 

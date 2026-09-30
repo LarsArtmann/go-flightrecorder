@@ -97,7 +97,7 @@ When `stopped == true`, `SnapshotIfAsync` returns `false` — no capture is init
 `.golangci.yml` enables ~90 linters (golangci-lint v2). Key config decisions:
 
 - `gosec` excludes G304 (file path from variable) and G115 (integer overflow) — both are intentional patterns in this library.
-- Test files (`_test.go`) exclude: `paralleltest`, `gochecknoglobals`, `goconst`, `varnamelen`, `wsl_v5`, `mnd`, `exhaustruct`, `err113` — all due to the singleton test serialization pattern and standard Go test idioms.
+- Test files (`_test.go`) exclude: `paralleltest`, `gochecknoglobals`, `goconst`, `varnamelen`, `wsl_v5`, `mnd`, `exhaustruct_v5`, `err113` — all due to the singleton test serialization pattern and standard Go test idioms.
 - `varnamelen` ignore-names includes `r`, `f`, `p`, `tc`, `cc` — standard Go abbreviations for Recorder, File, byte parameter, TriggerContext, and captureCtx.
 
 ### Error wrapping
@@ -110,11 +110,13 @@ When `stopped == true`, `SnapshotIfAsync` returns `false` — no capture is init
 
 The codebase uses nolint directives with justifying comments:
 
-| Directive              | Used for                                                                              |
-| ---------------------- | ------------------------------------------------------------------------------------- |
-| `//nolint:exhaustruct` | Intentional zero-value struct fields (mutex, once, lazy file handle)                  |
-| `//nolint:wrapcheck`   | Direct delegation (`lf.f.Write`) and standard context error propagation (`ctx.Err()`) |
-| `//art-dupl:accept`    | Accepted duplication (same-file mutex guard idiom)                                    |
+| Directive                    | Used for                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| `//nolint:exhaustruct_v5`    | Intentional zero-value struct fields (mutex, once, lazy file handle)                  |
+| `//nolint:wrapcheck`         | Direct delegation (`lf.f.Write`) and standard context error propagation (`ctx.Err()`) |
+| `//art-dupl:accept`          | Accepted duplication (same-file mutex guard idiom)                                    |
+
+Gotcha: golangci-lint 2.14 renamed the `exhaustruct` linter to `exhaustruct_v5`. A `//nolint:exhaustruct` directive then fails **silently** (linter still fires). Always use the versioned name.
 
 ### Functional options
 

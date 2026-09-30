@@ -234,7 +234,6 @@ linters:
       - path: _test\.go
         linters:
           - mnd
-          - exhaustruct
           - err113
           - paralleltest
           - gochecknoglobals

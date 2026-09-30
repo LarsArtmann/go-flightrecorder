@@ -64,7 +64,7 @@ func New(opts ...Option) (*Recorder, error) {
 		return nil, err
 	}
 
-	return &Recorder{ //nolint:exhaustruct // mu, once, wg are zero-value
+	return &Recorder{ //nolint:exhaustruct_v5 // mu, once, wg are zero-value
 		fr: trace.NewFlightRecorder(trace.FlightRecorderConfig{
 			MinAge:   cfg.minAge,
 			MaxBytes: cfg.maxBytes,
@@ -217,7 +217,7 @@ func (r *Recorder) Enabled() bool {
 // If the recorder is not enabled or has already been snapshotted,
 // Snapshot is a no-op and returns nil.
 func (r *Recorder) Snapshot(ctx context.Context) error {
-	return r.snapshot(ctx, captureMeta{ //nolint:exhaustruct // no trigger context for manual captures
+	return r.snapshot(ctx, captureMeta{ //nolint:exhaustruct_v5 // no trigger context for manual captures
 		Source: SnapshotSourceManual,
 	})
 }
@@ -278,7 +278,7 @@ func (r *Recorder) snapshot(ctx context.Context, origin captureMeta) error {
 // for the auto-named, retained directory pattern.
 func (r *Recorder) SnapshotToFile(ctx context.Context, path string) error {
 	return r.captureOnce(ctx, func() (SnapshotEvent, bool, error) {
-		return r.captureToFile(path, captureMeta{ //nolint:exhaustruct // no trigger context for manual
+		return r.captureToFile(path, captureMeta{ //nolint:exhaustruct_v5 // no trigger context for manual
 			Source: SnapshotSourceManual,
 		})
 	})
@@ -296,7 +296,7 @@ func (r *Recorder) SnapshotToFile(ctx context.Context, path string) error {
 // Calling SnapshotToDir without [WithSnapshotDir] returns a [*ConfigError].
 // When [WithMaxSnapshots] is set, retention cleanup runs after each write.
 func (r *Recorder) SnapshotToDir(ctx context.Context) (string, error) {
-	return r.snapshotToDir(ctx, captureMeta{ //nolint:exhaustruct // no trigger context for manual
+	return r.snapshotToDir(ctx, captureMeta{ //nolint:exhaustruct_v5 // no trigger context for manual
 		Source: SnapshotSourceManual,
 	})
 }
@@ -453,11 +453,11 @@ func (r *Recorder) SnapshotToWriter(ctx context.Context, dest io.Writer) (int64,
 		return 0, nil
 	}
 
-	counter := &countingWriter{w: dest} //nolint:exhaustruct // n is intentionally zero
+	counter := &countingWriter{w: dest} //nolint:exhaustruct_v5 // n is intentionally zero
 	start := time.Now()
 	err := r.writeCompressed(counter)
 
-	event := SnapshotEvent{ //nolint:exhaustruct // Path is empty for writer snapshots
+	event := SnapshotEvent{ //nolint:exhaustruct_v5 // Path is empty for writer snapshots
 		Duration:   time.Since(start),
 		Bytes:      counter.n,
 		Compressed: r.compressLevel != 0,
@@ -494,7 +494,7 @@ func (r *Recorder) captureToWriter(origin captureMeta) (SnapshotEvent, bool, err
 	defer r.mu.Unlock()
 
 	if !r.fr.Enabled() || r.writer == nil {
-		return SnapshotEvent{}, false, nil //nolint:exhaustruct // zero-value: nothing attempted
+		return SnapshotEvent{}, false, nil //nolint:exhaustruct_v5 // zero-value: nothing attempted
 	}
 
 	event, err := r.writeTrace(r.writer, "", origin)
@@ -509,13 +509,13 @@ func (r *Recorder) captureToFile(path string, origin captureMeta) (SnapshotEvent
 	defer r.mu.Unlock()
 
 	if !r.fr.Enabled() {
-		return SnapshotEvent{}, false, nil //nolint:exhaustruct // zero-value: nothing attempted
+		return SnapshotEvent{}, false, nil //nolint:exhaustruct_v5 // zero-value: nothing attempted
 	}
 
 	f, err := os.Create(path)
 	if err != nil {
 		wrapped := &SnapshotError{Op: "create", Path: path, Err: err}
-		r.metricsHook(SnapshotEvent{ //nolint:exhaustruct // no bytes/duration: write never started
+		r.metricsHook(SnapshotEvent{ //nolint:exhaustruct_v5 // no bytes/duration: write never started
 			Path:       path,
 			Source:     origin.Source,
 			Kind:       origin.Kind,
@@ -535,7 +535,7 @@ func (r *Recorder) captureToFile(path string, origin captureMeta) (SnapshotEvent
 // when configured, and timing/byte-counting for the [MetricsHook]. The caller
 // must hold r.mu.
 func (r *Recorder) writeTrace(w io.Writer, path string, origin captureMeta) (SnapshotEvent, error) {
-	counter := &countingWriter{w: w} //nolint:exhaustruct // n is intentionally zero
+	counter := &countingWriter{w: w} //nolint:exhaustruct_v5 // n is intentionally zero
 
 	start := time.Now()
 	err := r.writeCompressed(counter)
