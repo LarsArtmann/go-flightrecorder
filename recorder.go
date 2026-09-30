@@ -232,9 +232,12 @@ type captureMeta struct {
 	Type   string
 }
 
-// snapshot is the shared once-latched capture for writer sinks. The captureMeta
-// labels the capture origin for the [MetricsHook].
-func (r *Recorder) snapshot(ctx context.Context, origin captureMeta) error {
+// captureOnce is the shared once-latched capture pipeline for the writer and
+// file sinks ([Recorder.Snapshot], [Recorder.SnapshotToFile]): context guard,
+// then the latch, then metrics. The given capture runs at most once per latch
+// arm ([Recorder.Reset] re-arms). Its bool result is false when nothing was
+// attempted — no hook fires and nil returns.
+func (r *Recorder) captureOnce(ctx context.Context, capture func() (SnapshotEvent, bool, error)) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err() //nolint:wrapcheck // standard ctx propagation
@@ -242,20 +245,28 @@ func (r *Recorder) snapshot(ctx context.Context, origin captureMeta) error {
 	}
 
 	var (
-		snapErr  error
 		event    SnapshotEvent
 		captured bool
+		err      error
 	)
 
 	r.once.Do(func() {
-		event, captured, snapErr = r.captureToWriter(origin)
+		event, captured, err = capture()
 	})
 
 	if captured {
-		r.metricsHook(event, snapErr)
+		r.metricsHook(event, err)
 	}
 
-	return snapErr
+	return err
+}
+
+// snapshot is the once-latched capture to the configured writer sink. The
+// captureMeta labels the capture origin for the [MetricsHook].
+func (r *Recorder) snapshot(ctx context.Context, origin captureMeta) error {
+	return r.captureOnce(ctx, func() (SnapshotEvent, bool, error) {
+		return r.captureToWriter(origin)
+	})
 }
 
 // SnapshotToFile is a convenience that writes the trace to a file.
@@ -266,29 +277,11 @@ func (r *Recorder) snapshot(ctx context.Context, origin captureMeta) error {
 // SnapshotToFile does NOT trigger retention cleanup; use [Recorder.SnapshotToDir]
 // for the auto-named, retained directory pattern.
 func (r *Recorder) SnapshotToFile(ctx context.Context, path string) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err() //nolint:wrapcheck // standard ctx propagation
-	default:
-	}
-
-	var (
-		err      error
-		event    SnapshotEvent
-		captured bool
-	)
-
-	r.once.Do(func() {
-		event, captured, err = r.captureToFile(path, captureMeta{ //nolint:exhaustruct // no trigger context for manual
+	return r.captureOnce(ctx, func() (SnapshotEvent, bool, error) {
+		return r.captureToFile(path, captureMeta{ //nolint:exhaustruct // no trigger context for manual
 			Source: SnapshotSourceManual,
 		})
 	})
-
-	if captured {
-		r.metricsHook(event, err)
-	}
-
-	return err
 }
 
 // SnapshotToDir writes the trace to an auto-generated, timestamped file inside
