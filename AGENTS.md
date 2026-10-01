@@ -110,11 +110,11 @@ When `stopped == true`, `SnapshotIfAsync` returns `false` — no capture is init
 
 The codebase uses nolint directives with justifying comments:
 
-| Directive                    | Used for                                                                              |
-| ---------------------------- | ------------------------------------------------------------------------------------- |
-| `//nolint:exhaustruct_v5`    | Intentional zero-value struct fields (mutex, once, lazy file handle)                  |
-| `//nolint:wrapcheck`         | Direct delegation (`lf.f.Write`) and standard context error propagation (`ctx.Err()`) |
-| `//art-dupl:accept`          | Accepted duplication (same-file mutex guard idiom)                                    |
+| Directive                 | Used for                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------- |
+| `//nolint:exhaustruct_v5` | Intentional zero-value struct fields (mutex, once, lazy file handle)                  |
+| `//nolint:wrapcheck`      | Direct delegation (`lf.f.Write`) and standard context error propagation (`ctx.Err()`) |
+| `//art-dupl:accept`       | Accepted duplication (same-file mutex guard idiom)                                    |
 
 Gotcha: golangci-lint 2.14 renamed the `exhaustruct` linter to `exhaustruct_v5`. A `//nolint:exhaustruct` directive then fails **silently** (linter still fires). Always use the versioned name.
 
