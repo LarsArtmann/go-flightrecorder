@@ -10,6 +10,7 @@ import (
 	"runtime/trace"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -43,10 +44,10 @@ type Recorder struct {
 	metricsHook    MetricsHook
 	loggerHook     LoggerHook
 
-	mu      sync.Mutex     // guards once, stopped, and all capture/retention state
-	once    sync.Once      // ensures first Snapshot wins
-	wg      sync.WaitGroup // tracks in-flight async captures (SnapshotIfAsync)
-	stopped bool           // set once Stop/Close begins; blocks new async captures
+	mu      sync.Mutex                // guards stopped and all capture/retention state
+	once    atomic.Pointer[sync.Once] // once-latch, first Snapshot wins; Reset swaps it under mu while an in-flight ASYNC capture may still be loading it — hence the atomic pointer, not a bare sync.Once
+	wg      sync.WaitGroup            // tracks in-flight async captures (SnapshotIfAsync)
+	stopped bool                      // set once Stop/Close begins; blocks new async captures
 }
 
 // New creates a Recorder from the given options. Returns an error if
@@ -64,7 +65,7 @@ func New(opts ...Option) (*Recorder, error) {
 		return nil, err
 	}
 
-	return &Recorder{ //nolint:exhaustruct_v5 // mu, once, wg are zero-value
+	rec := &Recorder{ //nolint:exhaustruct_v5 // mu and wg are zero-value
 		fr: trace.NewFlightRecorder(trace.FlightRecorderConfig{
 			MinAge:   cfg.minAge,
 			MaxBytes: cfg.maxBytes,
@@ -76,7 +77,10 @@ func New(opts ...Option) (*Recorder, error) {
 		snapshotPrefix: cfg.snapshotPrefix,
 		metricsHook:    cfg.metricsHook,
 		loggerHook:     cfg.loggerHook,
-	}, nil
+	}
+	rec.once.Store(&sync.Once{})
+
+	return rec, nil
 }
 
 // Start begins buffering execution trace in memory.
@@ -250,7 +254,7 @@ func (r *Recorder) captureOnce(ctx context.Context, capture func() (SnapshotEven
 		err      error
 	)
 
-	r.once.Do(func() {
+	r.once.Load().Do(func() {
 		event, captured, err = capture()
 	})
 
@@ -476,13 +480,18 @@ func (r *Recorder) SnapshotToWriter(ctx context.Context, dest io.Writer) (int64,
 // Use this when you want to capture multiple snapshots over the recorder's
 // lifetime (e.g., periodic slow-operation captures).
 //
+// The latch is swapped atomically, so Reset is safe to call while an ASYNC
+// capture ([Recorder.SnapshotIfAsync]) is still in flight: the in-flight
+// capture consumes whichever latch instance it loaded; the fresh latch arms
+// the next capture. Reset never races with capture goroutines.
+//
 // Reset does not restart a stopped recorder. Call [Recorder.Start] first
 // if the recorder has been stopped.
 func (r *Recorder) Reset() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.once = sync.Once{}
+	r.once.Store(&sync.Once{})
 }
 
 // captureToWriter writes the buffered trace to the configured writer sink.

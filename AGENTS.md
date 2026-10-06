@@ -35,7 +35,7 @@ Six source files, one package:
 
 ## Official Adapters
 
-Integration wiring lives outside this repo, in the go-appkit module family (both require this library at v0.2.0; this repo stays stdlib-only and must never import them):
+Integration wiring lives outside this repo, in the go-appkit module family (both require this library at v0.2.1; this repo stays stdlib-only and must never import them):
 
 - `go-appkit/flightrecorder` — HTTP middleware that builds `TriggerContext` from requests and captures on error/latency, plus a manual snapshot endpoint (`Middleware`, `Mount`).
 - `go-appkit/flightrecorderhealth` — bridge to go-health: recorder state as a health check (`Checkable`, `Register`) and auto-capture on health-check failures (`Trigger`, a `health.HealthRecorder` implementation with cooldown).
@@ -58,7 +58,7 @@ Because of the singleton constraint, every test that calls `Start`/`Stop` **must
 
 ### Snapshot once-semantics
 
-`Snapshot` and `SnapshotToFile` use `sync.Once` internally: only the **first** successful call writes trace data. All subsequent calls are silent no-ops (return `nil`). `Reset()` re-arms the latch by replacing the `sync.Once` value.
+`Snapshot` and `SnapshotToFile` use `sync.Once` internally: only the **first** successful call writes trace data. All subsequent calls are silent no-ops (return `nil`). `Reset()` re-arms the latch by atomically swapping in a fresh `sync.Once` (the field is an `atomic.Pointer[sync.Once]` — safe to call while an async capture is in flight; see CHANGELOG 0.2.1).
 
 **`SnapshotToDir` is NOT once-latched** — every call produces a new timestamped file. This is intentional: once-semantics is for the single-shot writer/file use case; directory capture is for the append-and-retain pattern.
 

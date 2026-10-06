@@ -1890,3 +1890,70 @@ func TestRecorder_SnapshotIf_ThreadsKindAndTypeToMetricsHook(t *testing.T) {
 		t.Fatalf("expected Source=%q, got %q", flightrecorder.SnapshotSourceTrigger, event.Source)
 	}
 }
+
+// TestRecorder_ResetDuringAsyncCapture_Concurrent pins the v0.2.1 race fix:
+// Reset (latch swap) concurrent with in-flight async captures must not race
+// on the once-latch. The v0.2.0 bare sync.Once field raced a request
+// goroutine's plain store against an async capture goroutine's once.Do load;
+// under -race any unsynchronized access fails the run. The writer sink is
+// deliberate — only the writer/file path consults the once-latch.
+func TestRecorder_ResetDuringAsyncCapture_Concurrent(t *testing.T) {
+	recorderMu.Lock()
+	defer recorderMu.Unlock()
+
+	buf := &syncBuffer{}
+
+	r, err := flightrecorder.New(flightrecorder.WithWriter(buf))
+	if err != nil {
+		t.Fatalf("New() error: %v", err)
+	}
+
+	if err := r.Start(); err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
+
+	var wg sync.WaitGroup
+
+	for range 64 {
+		wg.Go(func() {
+			r.SnapshotIfAsync(
+				context.Background(),
+				flightrecorder.TriggerContext{Kind: "http", Type: "GET /race"},
+				flightrecorder.OnAlways(),
+			)
+			r.Reset()
+		})
+	}
+
+	wg.Wait()
+
+	if err := r.Close(); err != nil {
+		t.Fatalf("Close() error: %v", err)
+	}
+
+	if buf.Len() == 0 {
+		t.Fatal("expected at least one capture to reach the writer")
+	}
+}
+
+// syncBuffer is a mutex-guarded bytes.Buffer: fr serializes sink writes with
+// its own mutex, but the guard makes the buffer safe under -race regardless
+// of internal locking order.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) Len() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.buf.Len()
+}

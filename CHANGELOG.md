@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-10-06
+
+### Fixed
+
+- Data race between [Recorder.Reset] and in-flight async captures
+  ([Recorder.SnapshotIfAsync]). The once-latch was a bare `sync.Once` field:
+  a Reset on one goroutine performed an unsynchronized store while an async
+  capture goroutine loaded the same field inside `once.Do`. The race was
+  latent — no in-repo caller combined async captures with Reset — and was
+  surfaced by go-appkit's race-detector suite after its HTTP middleware
+  switched to `SnapshotIfAsync` + auto-reset. The latch is now an
+  `atomic.Pointer[sync.Once]`: Reset swaps it while a capture consumes
+  whichever instance it loaded. No lock-ordering changes; once-semantics
+  unchanged. Regression test:
+  `TestRecorder_ResetDuringAsyncCapture_Concurrent`. (`recorder.go`,
+  `recorder_test.go`)
+
 ## [0.2.0] - 2026-08-11
 
 ### Added
