@@ -12,12 +12,15 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	atomicwrite "github.com/larsartmann/go-atomic-write"
 )
 
 const (
-	defaultMinAge          = 10 * time.Second
-	defaultMaxBytes uint64 = 10 << 20 // 10 MiB — ~1s of trace data for a busy service
-	snapshotDirMode        = 0o750    // owner rwx, group rx — no world access for trace dumps
+	defaultMinAge           = 10 * time.Second
+	defaultMaxBytes  uint64 = 10 << 20 // 10 MiB — ~1s of trace data for a busy service
+	snapshotDirMode         = 0o750    // owner rwx, group rx — no world access for trace dumps
+	snapshotFileMode        = 0o600    // owner rw — trace dumps carry stacks and argument values
 )
 
 // Recorder wraps [runtime/trace.FlightRecorder] with safe lifecycle
@@ -274,8 +277,8 @@ func (r *Recorder) snapshot(ctx context.Context, origin captureMeta) error {
 }
 
 // SnapshotToFile is a convenience that writes the trace to a file.
-// It creates the file, writes the snapshot, and closes the file.
-// Once-semantics apply as with [Recorder.Snapshot].
+// The file appears atomically: a failed or interrupted write never leaves a
+// truncated file at path. Once-semantics apply as with [Recorder.Snapshot].
 //
 // The context is checked for cancellation before the snapshot begins.
 // SnapshotToFile does NOT trigger retention cleanup; use [Recorder.SnapshotToDir]
@@ -511,8 +514,14 @@ func (r *Recorder) captureToWriter(origin captureMeta) (SnapshotEvent, bool, err
 	return event, true, err
 }
 
-// captureToFile writes the buffered trace to a freshly created file at path.
+// captureToFile writes the buffered trace to the file at path.
 // The bool result is false when the recorder is disabled (no-op).
+//
+// The write is staged: the trace goes to a temp file next to path, is fsync'd,
+// and is renamed into place. A crash or a failed write therefore never leaves a
+// truncated or empty file at path — a previous snapshot stays intact and a
+// first snapshot either exists complete or not at all. The file is created
+// owner-only (0600); trace dumps carry goroutine stacks and argument values.
 func (r *Recorder) captureToFile(path string, origin captureMeta) (SnapshotEvent, bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -521,23 +530,56 @@ func (r *Recorder) captureToFile(path string, origin captureMeta) (SnapshotEvent
 		return SnapshotEvent{}, false, nil //nolint:exhaustruct_v5 // zero-value: nothing attempted
 	}
 
-	f, err := os.Create(path)
-	if err != nil {
-		wrapped := &SnapshotError{Op: "create", Path: path, Err: err}
-		r.metricsHook(SnapshotEvent{ //nolint:exhaustruct_v5 // no bytes/duration: write never started
-			Path:       path,
-			Source:     origin.Source,
-			Kind:       origin.Kind,
-			Type:       origin.Type,
-			Compressed: r.compressLevel != 0,
-		}, wrapped)
+	event, err := r.stagedFileWrite(path, origin, func(w io.Writer) (SnapshotEvent, error) {
+		return r.writeTrace(w, path, origin)
+	})
 
-		return SnapshotEvent{}, true, wrapped
+	return event, true, err
+}
+
+// stagedFileWrite runs write against a temp file, fsyncs it, and renames it
+// over path (go-atomic-write: stage + fsync + rename, file mode
+// [snapshotFileMode]). write runs with r.mu held, like every other trace
+// write.
+//
+// A *SnapshotError returned by write passes through unchanged. Any other
+// failure — creating the temp file, flushing, fsync, closing it, or the
+// rename — is reported as a *SnapshotError with Op "create", and the
+// [MetricsHook] is invoked with a bytes-less failure event for it (the same
+// report a failed os.Create produced before the write became staged).
+func (r *Recorder) stagedFileWrite(
+	path string,
+	origin captureMeta,
+	write func(io.Writer) (SnapshotEvent, error),
+) (SnapshotEvent, error) {
+	var (
+		event    SnapshotEvent
+		writeErr error
+	)
+
+	err := atomicwrite.WriteFuncWithPerm(path, func(w io.Writer) error {
+		event, writeErr = write(w)
+
+		return writeErr
+	}, snapshotFileMode)
+	if err == nil {
+		return event, nil
 	}
 
-	event, writeErr := r.writeTraceFile(f, path, origin)
+	if snapErr, ok := errors.AsType[*SnapshotError](err); ok {
+		return event, snapErr
+	}
 
-	return event, true, writeErr
+	wrapped := &SnapshotError{Op: "create", Path: path, Err: err}
+	r.metricsHook(SnapshotEvent{ //nolint:exhaustruct_v5 // no bytes/duration: the file at path was never written
+		Path:       path,
+		Source:     origin.Source,
+		Kind:       origin.Kind,
+		Type:       origin.Type,
+		Compressed: r.compressLevel != 0,
+	}, wrapped)
+
+	return SnapshotEvent{}, wrapped
 }
 
 // writeTrace performs the trace write to the given sink, applying compression
@@ -564,18 +606,6 @@ func (r *Recorder) writeTrace(w io.Writer, path string, origin captureMeta) (Sna
 	}
 
 	return event, nil
-}
-
-// writeTraceFile is writeTrace for an *os.File that must be closed afterwards.
-// A close error after a successful write is reported as a SnapshotError.
-func (r *Recorder) writeTraceFile(f *os.File, path string, origin captureMeta) (SnapshotEvent, error) {
-	event, err := r.writeTrace(f, path, origin)
-
-	if closeErr := f.Close(); closeErr != nil && err == nil {
-		err = &SnapshotError{Op: "close", Path: path, Err: closeErr}
-	}
-
-	return event, err
 }
 
 // writeCompressed writes the trace to dest, wrapping it in a gzip.Writer when
