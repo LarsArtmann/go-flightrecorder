@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- `[Recorder.SnapshotToFile]` and `[Recorder.SnapshotToDir]` write through a
+  staged temp file (fsync, then atomic rename) instead of writing straight
+  into the target file. A crash or a failed write used to leave an empty or
+  truncated `.trace` file at the target path; now a previous snapshot stays
+  intact and a first snapshot either exists complete or not at all. Snapshot
+  files are created `0600` (was umask-dependent, typically `0644`) — trace
+  dumps carry goroutine stacks and argument values. Failures outside the
+  trace write itself (temp file, fsync, rename) surface as a `*SnapshotError`
+  with `Op: "create"`. Regression tests: `TestStagedFileWrite_*`.
+  (`recorder.go`, `recorder_internal_test.go`; adds `go-atomic-write v0.7.0`)
+
 ## [0.2.1] - 2026-10-06
 
 ### Fixed
