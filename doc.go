@@ -65,6 +65,16 @@
 // block hot paths. Stop and Close drain all in-flight captures before
 // shutting down.
 //
+// The context is checked once, in that goroutine, before anything is written.
+// If it is cancelled by then — a request context is, once the handler
+// returns — the capture is dropped silently, although SnapshotIfAsync has
+// already returned true. Detach the context to keep the snapshot:
+//
+//	recorder.SnapshotIfAsync(context.WithoutCancel(r.Context()), tc, trigger)
+//
+// Past the check the capture cannot be cancelled: the write completes, and
+// Stop and Close wait for it.
+//
 // # Observability hooks (no dependencies)
 //
 // WithMetrics and WithLogger register callbacks so consumers wire their own

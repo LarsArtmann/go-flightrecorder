@@ -68,7 +68,16 @@ Because of the singleton constraint, every test that calls `Start`/`Stop` **must
 
 ### Context cancellation is pre-write only
 
-`Snapshot` checks `ctx.Done()` before starting the write, but `trace.FlightRecorder.WriteTo` does not accept a context, so an in-progress write **cannot** be cancelled.
+Every capture reads `ctx` exactly once: a non-blocking `ctx.Done()` check before anything is written — in `captureOnce` for the writer/file sink, at the top of `snapshotToDir` for the directory sink. `trace.FlightRecorder.WriteTo` does not accept a context, so a write in progress **cannot** be cancelled or cut short; it completes and the metrics hook reports success.
+
+For `SnapshotIfAsync` that one check runs in the capture goroutine, after the method has already returned `true`:
+
+- **Cancelled at the check** (already dead at call time, or it dies before the goroutine is scheduled — a request context at handler return): the capture is **dropped silently**. No bytes, no file, no `MetricsHook` call, no `LoggerHook` line. The once-latch stays armed because the check precedes `once.Do`. The return value is still `true`; the sync `SnapshotIf` returns `false` in the same situation.
+- **Cancelled after the check**: no effect. The write completes.
+
+Cancelling `ctx` is not an abort and does not shorten the drain: `Stop`/`Close` wait for the write either way. Callers that need the capture to outlive their context pass `context.WithoutCancel(ctx)` — go-daemon's `MaybeCaptureOnSlowRequest` and go-appkit's middleware do.
+
+Pinned by `TestRecorder_SnapshotIfAsync_*` in `recorder_async_context_test.go`. Making the drop observable (a log line, a hook event, returning `false`) or moving the check behind `once.Do` is a behaviour change: update the `SnapshotIfAsync` godoc and those tests together.
 
 ### Async capture drain and the `stopped` flag (do not break this)
 
@@ -89,6 +98,8 @@ Despite the original feedback doc claiming gzip support since Go 1.19, empirical
 ### `SnapshotIfAsync` returns false during shutdown
 
 When `stopped == true`, `SnapshotIfAsync` returns `false` — no capture is initiated, no goroutine spawned. The return value means "capture was initiated," not "trigger fired." This is a deliberate fix: the prior `return true` was a lying API that claimed success while silently dropping the capture.
+
+A cancelled context is the other silent drop, and there the return value is `true`, not `false` — see "Context cancellation is pre-write only" above.
 
 ## Conventions
 
@@ -128,3 +139,4 @@ Gotcha: golangci-lint 2.14 renamed the `exhaustruct` linter to `exhaustruct_v5`.
 - `t.Cleanup(r.Stop)` for recorder teardown.
 - Tests that need trace data sleep (`time.Sleep(100*time.Millisecond)`) to let the buffer fill, with `MinAge` set low (e.g., `50*time.Millisecond`).
 - `t.TempDir()` for file-based snapshot tests.
+- `recorder_async_context_test.go` pins the `SnapshotIfAsync` context contract with two test doubles: `gateContext` parks the capture goroutine at the pre-write check so a test can cancel the context at exactly that point, and `blockingWriter` parks the trace write mid-flight. Every wait on a capture goroutine goes through `awaitSignal`, which fails after 5s instead of hanging the test binary.

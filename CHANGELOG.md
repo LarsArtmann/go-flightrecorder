@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Documented
+
+- The context contract of [Recorder.SnapshotIfAsync], now pinned by tests. The
+  context is read once, in the capture goroutine, before anything is written.
+  Cancelled by then — already at call time, or before the goroutine is
+  scheduled, as with a request context at handler return — the capture is
+  dropped with no bytes, no file, no `MetricsHook` call, the once-latch stays
+  armed, and the method has already returned `true`. Past that check,
+  cancellation has no effect: the write completes and Stop/Close wait for it.
+  No behaviour change. Regression tests:
+  `TestRecorder_SnapshotIfAsync_CancelledBeforeWriteDropsCapture`,
+  `TestRecorder_SnapshotIfAsync_DroppedCaptureLeavesOnceLatchArmed`,
+  `TestRecorder_SnapshotIfAsync_MidWriteCancellationDoesNotAbortWrite`,
+  `TestRecorder_SnapshotIfAsync_MidWriteCancellationLeavesFileComplete`,
+  `TestRecorder_SnapshotIf_CancelledContextReturnsFalse`.
+  (`recorder.go`, `doc.go`, `README.md`, `AGENTS.md`,
+  `recorder_async_context_test.go`)
+
 ## [0.2.1] - 2026-10-06
 
 ### Fixed

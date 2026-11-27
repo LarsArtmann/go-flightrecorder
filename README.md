@@ -157,14 +157,18 @@ captures before shutting down:
 
 ```go
 // In middleware, after a slow request:
-recorder.SnapshotIfAsync(detachedCtx, flightrecorder.TriggerContext{
+recorder.SnapshotIfAsync(context.WithoutCancel(r.Context()), flightrecorder.TriggerContext{
     Kind:     "http.request",
     Duration: 250 * time.Millisecond,
 }, flightrecorder.OnErrorOrLatency(100*time.Millisecond))
 ```
 
-Pass a context whose lifetime exceeds the write (e.g., detached from the
-request) if the snapshot must survive the handler returning.
+The context is checked once, in the capture goroutine, before anything is written:
+
+- **Already cancelled at that check** → the capture is dropped silently: no file, no `WithMetrics` call — although `SnapshotIfAsync` returned `true`.
+- **Cancelled later** → no effect. A write in progress cannot be cancelled; it completes, and `Stop`/`Close` wait for it.
+
+A request context is cancelled when the handler returns, so it races that check. Detach it with `context.WithoutCancel` (as above) when the snapshot must survive the handler.
 
 ## Observability without dependencies
 
