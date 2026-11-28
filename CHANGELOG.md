@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Nothing yet.
+
+### Changed
+
+- Nothing yet.
+
+### Fixed
+
+- Nothing yet.
+
+## [0.2.2] - 2026-11-28
+
 ### Fixed
 
 - `[Recorder.SnapshotToFile]` and `[Recorder.SnapshotToDir]` write through a
