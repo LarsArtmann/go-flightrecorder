@@ -244,6 +244,10 @@ type captureMeta struct {
 // then the latch, then metrics. The given capture runs at most once per latch
 // arm ([Recorder.Reset] re-arms). Its bool result is false when nothing was
 // attempted — no hook fires and nil returns.
+//
+// The guard is the only place a capture reads its context, and it runs before
+// the latch: a cancelled context drops the capture without consuming the
+// once-latch. [Recorder.SnapshotIfAsync] documents the contract this upholds.
 func (r *Recorder) captureOnce(ctx context.Context, capture func() (SnapshotEvent, bool, error)) error {
 	select {
 	case <-ctx.Done():
@@ -302,6 +306,10 @@ func (r *Recorder) SnapshotToFile(ctx context.Context, path string) error {
 //
 // Calling SnapshotToDir without [WithSnapshotDir] returns a [*ConfigError].
 // When [WithMaxSnapshots] is set, retention cleanup runs after each write.
+//
+// The context is checked for cancellation before anything is written: a
+// cancelled context returns its error, and neither the directory nor a file
+// is created.
 func (r *Recorder) SnapshotToDir(ctx context.Context) (string, error) {
 	return r.snapshotToDir(ctx, captureMeta{ //nolint:exhaustruct_v5 // no trigger context for manual
 		Source: SnapshotSourceManual,
@@ -320,6 +328,8 @@ func (r *Recorder) snapshotToDir(ctx context.Context, origin captureMeta) (strin
 		}
 	}
 
+	// The only read of ctx: a cancelled context drops the capture before the
+	// directory is touched.
 	select {
 	case <-ctx.Done():
 		return "", ctx.Err() //nolint:wrapcheck // standard ctx propagation
@@ -360,7 +370,8 @@ func (r *Recorder) snapshotToDir(ctx context.Context, origin captureMeta) (strin
 
 // SnapshotIf evaluates the trigger against the given context and captures
 // a snapshot if the trigger returns true. Returns true if a snapshot was
-// initiated, false otherwise.
+// initiated, false otherwise. A cancelled context counts as not initiated:
+// nothing is written, the once-latch stays armed, and false is returned.
 //
 // This is the primary method for middleware integration: the middleware
 // constructs a [TriggerContext] from the operation result and delegates
@@ -382,22 +393,42 @@ func (r *Recorder) SnapshotIf(ctx context.Context, tc TriggerContext, trigger Tr
 // returning immediately. This is intended for hot paths (e.g., HTTP middleware)
 // where trace file I/O must not block the response.
 //
-// Returns true only when a capture was actually initiated. Returns false if the
-// trigger did not fire OR if the recorder is shutting down ([Recorder.Stop] /
-// [Recorder.Close] already began). In the shutdown case the capture is silently
-// dropped — no goroutine is spawned.
+// Returns true only when a capture was actually initiated, i.e. a capture
+// goroutine was started. That is not a promise that a snapshot gets written;
+// see the context rules below. Returns false if the trigger did not fire OR if
+// the recorder is shutting down ([Recorder.Stop] / [Recorder.Close] already
+// began). In the shutdown case the capture is silently dropped — no goroutine
+// is spawned.
 //
 // The capture routes to the configured sink: [WithSnapshotDir] writes a new
 // timestamped file; otherwise the writer sink ([WithWriter]/[WithFile]) is used
 // with once-semantics.
 //
-// The context is captured by the goroutine. If the context is cancelled before
-// the write begins, the pre-write check skips the capture. Pass a context whose
-// lifetime exceeds the write (e.g., detached from the request) if the snapshot
-// must survive the caller returning.
+// # Context
 //
-// [Recorder.Stop] and [Recorder.Close] drain all in-flight async captures
-// before stopping, so the goroutine never outlives a clean shutdown.
+// The context is read exactly once per capture: by the capture goroutine, in a
+// non-blocking check before anything is written.
+//
+//   - Cancelled at that check — it was already cancelled when SnapshotIfAsync
+//     was called, or it dies afterwards before the goroutine gets scheduled —
+//     the capture is dropped: no bytes, no file, no [MetricsHook] call, and
+//     the once-latch of the writer sink stays armed. Nothing reports the drop,
+//     because SnapshotIfAsync has already returned true. ([Recorder.SnapshotIf]
+//     returns false in the same situation.)
+//   - Live at that check — the capture completes no matter what happens to
+//     the context afterwards. [runtime/trace.FlightRecorder.WriteTo] takes no
+//     context, so a write in progress cannot be cancelled or cut short: the
+//     snapshot is written in full and the [MetricsHook] reports a success.
+//
+// A request context is cancelled when the handler returns, so it races that
+// check — and a lost race costs the snapshot. Detach the context when the
+// capture must outlive the caller:
+//
+//	recorder.SnapshotIfAsync(context.WithoutCancel(r.Context()), tc, trigger)
+//
+// Cancelling the context neither aborts a capture nor shortens the drain:
+// [Recorder.Stop] and [Recorder.Close] wait for all in-flight async captures,
+// so the goroutine never outlives a clean shutdown.
 func (r *Recorder) SnapshotIfAsync(ctx context.Context, tc TriggerContext, trigger TriggerFunc) bool {
 	if trigger == nil || !trigger(tc) {
 		return false
